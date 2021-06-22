@@ -42,7 +42,7 @@ defmodule LndClient do
   end
 
   def init(_) do
-    server = "localhost:10009"
+    server = System.get_env("SERVER") || "localhost:10009"
     cert_path = "~/.lnd/umbrel.cert"
     macaroon_path = "~/.lnd/readonly.macaroon"
 
