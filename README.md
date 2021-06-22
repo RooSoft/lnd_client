@@ -1,6 +1,24 @@
 # LndClient
 
-## Usage
+Connects to the Lightning Network Daemon known as LND
+
+## How to use with IEx
+
+It is possible to use that library to connect to a LND node directly from IEx
+
+Execute this in the root folder if your LND listens on the `localhost` port `10009`
+
+```bash
+SERVER=localhost:10009 iex -S mix
+```
+
+Then, it is possible to get the LND's basic informations by typing
+
+```elixir
+LndClient.get_info
+```
+
+## How to use in an app
 
 ### Add this dependency in mix.exs
 
