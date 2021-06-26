@@ -4,6 +4,12 @@ Connects to the Lightning Network Daemon known as LND
 
 ## Prerequisites for umbrel users
 
+with a fresh clone of this project, run 
+
+```bash
+mix deps.get
+```
+
 copy those files from the umbrel to the computer running the app
 
 - `/home/umbrel/umbrel/lnd/tls.cert` must be copied to `~/.lnd/umbrel.cert`
