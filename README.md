@@ -2,14 +2,26 @@
 
 Connects to the Lightning Network Daemon known as LND
 
+## Prerequisites for umbrel users
+
+copy those files from the umbrel to the computer running the app
+
+- `/home/umbrel/umbrel/lnd/tls.cert` must be copied to `~/.lnd/umbrel.cert`
+- add `/home/umbrel/umbrel/lnd/data/chain/bitcoin/mainnet/readonly.macaroon` to the `~/.lnd`
+- look below for the SERVER environment variable that must be set when you run `iex -S mix`
+
 ## How to use with IEx
 
-It is possible to use that library to connect to a LND node directly from IEx
+Connect to a LND node directly from IEx
 
 Execute this in the root folder if your LND listens on the `localhost` port `10009`
 
+Otherwise, replace UMBRE_IP and UMBREL_LND_PORT to fit your environment
+
 ```bash
-SERVER=localhost:10009 iex -S mix
+UMBREL_IP=localhost
+UMBREL_LND_PORT=10009
+SERVER=$UMBREL_IP:$UMBREL_LND_PORT iex -S mix
 ```
 
 Then, it is possible to get the LND's basic informations by typing
