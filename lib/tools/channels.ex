@@ -17,4 +17,12 @@ defmodule LndClient.Tools.Channels do
     channels
     |> Enum.each(fn channel -> IO.puts("#{channel.chan_id} is #{channel.capacity} sats") end)
   end
+  
+  def get_stagnant_channels() do
+    %Lnrpc.ListChannelsResponse{channels: channels} = LndClient.get_channels()
+    channels
+    |> Stream.filter(fn channel -> channel.total_satoshis_sent == 0 end)
+    |> Stream.filter(fn channel -> channel.local_balance > (channel.capacity * 0.55) end)
+    |> Enum.each(fn channel -> IO.puts("#{channel.chan_id} with #{channel.local_balance} sats is stagnant") end)
+  end
 end
