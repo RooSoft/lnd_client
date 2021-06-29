@@ -17,12 +17,18 @@ defmodule LndClient.Tools.Channels do
     channels
     |> Enum.each(fn channel -> IO.puts("#{channel.chan_id} is #{channel.capacity} sats") end)
   end
-  
+
   def get_stagnant_channels() do
     %Lnrpc.ListChannelsResponse{channels: channels} = LndClient.get_channels()
     channels
     |> Stream.filter(fn channel -> (channel.total_satoshis_sent == 0 || channel.total_satoshis_received == 0) end)
     |> Stream.filter(fn channel -> channel.local_balance > (channel.capacity * 0.45) end)
-    |> Enum.each(fn channel -> IO.puts("#{channel.chan_id} with #{channel.local_balance} sats is stagnant") end)
+    |> Enum.each(&print_stagnant_channel/1)
+  end
+
+  def print_stagnant_channel(channel) do
+    %Lnrpc.NodeInfo{ node: %Lnrpc.LightningNode{ alias: node_alias } } = LndClient.get_node_info(channel.remote_pubkey)
+
+    IO.puts("#{node_alias} with #{channel.local_balance} sats is stagnant")
   end
 end
