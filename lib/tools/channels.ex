@@ -36,6 +36,7 @@ defmodule LndClient.Tools.Channels do
     %Lnrpc.ListChannelsResponse{ channels: channels } = LndClient.get_channels()
     channels
     |> Stream.filter(fn channel -> channel.active == :false end)
+    |> Stream.filter(fn channel -> channel.local_balance != 0 end)
     |> Enum.each(&print_inactive_channels/1)
   end
 
