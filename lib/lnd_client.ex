@@ -43,8 +43,8 @@ defmodule LndClient do
 
   def init(_) do
     server = System.get_env("SERVER") || "localhost:10009"
-    cert_path = "~/.lnd/umbrel.cert"
-    macaroon_path = "~/.lnd/readonly.macaroon"
+    cert_path = System.get_env("CERT") || "~/.lnd/umbrel.cert"
+    macaroon_path = System.get_env("MACAROON") || "~/.lnd/readonly.macaroon"
 
     state = Connectivity.connect(server, cert_path, macaroon_path)
 

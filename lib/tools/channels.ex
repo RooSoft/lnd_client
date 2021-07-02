@@ -31,4 +31,17 @@ defmodule LndClient.Tools.Channels do
 
     IO.puts("#{node_alias} with #{channel.local_balance} sats is stagnant")
   end
+  
+  def get_inactive_channels() do
+    %Lnrpc.ListChannelsResponse{ channels: channels } = LndClient.get_channels()
+    channels
+    |> Stream.filter(fn channel -> channel.active == :false end)
+    |> Stream.filter(fn channel -> channel.local_balance != 0 end)
+    |> Enum.each(&print_inactive_channels/1)
+  end
+
+  def print_inactive_channels(channel) do
+    %Lnrpc.NodeInfo{ node: %Lnrpc.LightningNode{ alias: node_alias } } = LndClient.get_node_info(channel.remote_pubkey)
+    IO.puts("#{node_alias} with #{channel.local_balance} sats is inactive")
+  end
 end
