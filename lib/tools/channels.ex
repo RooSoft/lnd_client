@@ -20,7 +20,12 @@ defmodule LndClient.Tools.Channels do
   def display_names_and_capacity() do
     %Lnrpc.ListChannelsResponse{channels: channels} = LndClient.get_channels()
     channels
-    |> Enum.each(fn channel -> IO.puts("#{channel.chan_id} is #{channel.capacity} sats") end)
+    |> Enum.each(&print_names_and_capacity/1)
+  end
+
+  defp print_names_and_capacity(channel) do
+    %Lnrpc.NodeInfo{ node: %Lnrpc.LightningNode{ alias: node_alias } } = LndClient.get_node_info(channel.remote_pubkey)
+    IO.puts("#{node_alias} Capacity:#{channel.capacity}, LocalBalance:#{channel.local_balance}")
   end
 
   def get_stagnant_channels() do
