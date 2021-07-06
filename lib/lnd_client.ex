@@ -37,6 +37,10 @@ defmodule LndClient do
   def get_node_balance() do
     GenServer.call(__MODULE__, :get_node_balance)
   end
+  
+  def get_wallet_balance() do
+    GenServer.call(__MODULE__, :get_wallet_balance)
+  end
 
   @forwarding_history_defaults %{ max_events: 100, offset: 0, start_time: nil, end_time: nil }
   def get_forwarding_history(parameters \\ %{}) do
@@ -53,6 +57,15 @@ defmodule LndClient do
     state = Connectivity.connect(server, cert_path, macaroon_path)
 
     { :ok, state }
+  end
+  
+  def handle_call(:get_wallet_balance, _from, state) do
+    { :ok, wallet_info } = Lnrpc.Lightning.Stub.wallet_balance(
+      state.connection,
+      Lnrpc.WalletBalanceRequest.new(),
+      metadata: %{macaroon: state.macaroon}
+    )
+    { :reply, wallet_info, state}
   end
   
   def handle_call(:get_node_balance, _from, state) do
