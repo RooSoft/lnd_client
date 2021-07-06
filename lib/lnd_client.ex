@@ -41,6 +41,27 @@ defmodule LndClient do
     GenServer.call(__MODULE__, { :get_forwarding_history, parameters })
   end
 
+  def update_channel_policy(%{
+    txid: txid,
+    output_index: output_index,
+    base_fee_msat: base_fee_msat,
+    fee_rate: fee_rate,
+    time_lock_delta: time_lock_delta,
+    max_htlc_msat: max_htlc_msat
+  }) do
+    GenServer.call(__MODULE__, {
+      :update_channel_policy,
+      %{
+        txid: txid,
+        output_index: output_index,
+        base_fee_msat: base_fee_msat,
+        fee_rate: fee_rate,
+        time_lock_delta: time_lock_delta,
+        max_htlc_msat: max_htlc_msat
+      }
+    })
+  end
+
   def init(_) do
     server = System.get_env("SERVER") || "localhost:10009"
     cert_path = System.get_env("CERT") || "~/.lnd/umbrel.cert"
@@ -131,6 +152,44 @@ defmodule LndClient do
     )
 
     { :reply, forwards, state}
+  end
+
+  def handle_call({ :update_channel_policy, %{
+    txid: txid,
+    output_index: output_index,
+    base_fee_msat: base_fee_msat,
+    fee_rate: fee_rate,
+    time_lock_delta: time_lock_delta,
+    max_htlc_msat: max_htlc_msat
+  }}, _from, state) do
+
+    channel_point = %{
+      funding_txid: {
+        :funding_txid_str, txid
+      },
+      output_index: output_index
+    }
+
+    request = Lnrpc.PolicyUpdateRequest.new(%{
+      scope: {:chan_point, channel_point},
+      base_fee_msat: base_fee_msat,
+      fee_rate: fee_rate,
+      time_lock_delta: time_lock_delta,
+      max_htlc_msat: max_htlc_msat,
+      min_htlc_msat: 1,
+      min_htlc_msat_specified: false
+    })
+
+    output = Lnrpc.Lightning.Stub.update_channel_policy(
+      state.connection,
+      request,
+      metadata: %{macaroon: state.macaroon}
+    )
+
+    case output do
+      { :ok, channel } -> { :reply, IO.inspect(channel), state}
+      { :error, error } -> IO.inspect error
+    end
   end
 
   def datetime_to_unix nil do
