@@ -39,8 +39,7 @@ defmodule LndClient do
     output_index: output_index,
     force: force,
     target_conf: target_conf,
-    sat_per_vbyte: sat_per_vbyte,
-    delivery_address: delivery_address
+    sat_per_vbyte: sat_per_vbyte
     }) do
     GenServer.call(__MODULE__, {
       :close_channel, %{
@@ -48,8 +47,7 @@ defmodule LndClient do
         output_index: output_index,
         force: force,
         target_conf: target_conf,
-        sat_per_vbyte: sat_per_vbyte,
-        delivery_address: delivery_address
+        sat_per_vbyte: sat_per_vbyte
       }
     })
   end
@@ -114,8 +112,7 @@ defmodule LndClient do
     output_index: output_index,
     force: force,
     target_conf: target_conf,
-    sat_per_vbyte: sat_per_vbyte,
-    delivery_address: delivery_address
+    sat_per_vbyte: sat_per_vbyte
   }}, _from, state) do
 
     channel_point = %{
@@ -129,15 +126,19 @@ defmodule LndClient do
       channel_point: channel_point,
       force: force,
       target_conf: target_conf,
-      sat_per_vbyte: sat_per_vbyte,
-      delivery_address: delivery_address
+      sat_per_vbyte: sat_per_vbyte
     }
-    { :ok, close_request } = Lnrpc.Lightning.Stub.close_channel(
+
+    output = Lnrpc.Lightning.Stub.close_channel(
       state.connection,
       Lnrpc.CloseChannelRequest.new(params),
       metadata: %{macaroon: state.macaroon}
     )
-    { :reply, close_request, state}
+
+    case output do
+      { :ok, channel } -> { :reply, IO.inspect(channel), state}
+      { :error, error } -> IO.inspect error
+    end
   end
 
   def handle_call(:get_node_balance, _from, state) do
