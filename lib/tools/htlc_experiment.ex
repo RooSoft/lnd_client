@@ -1,5 +1,5 @@
 defmodule LndClient.Tools.HtlcExperiment do
-  def set_local_balance_as_max_htlc_msat do
+  def set_max_htlc_msat_to_local_balance do
     LndClient.get_channels.channels
     |> add_empty_policies
     |> extract_channel_points
@@ -27,17 +27,14 @@ defmodule LndClient.Tools.HtlcExperiment do
     channels_with_policies
     |> Enum.map(fn { policy, channel } ->
       [txid | [output_index | []]] = String.split(policy.channel_point, ":")
-
       policy = Map.put(policy, :txid, txid)
-      policy = Map.put(policy, :output_index, Integer.parse(output_index))
+      policy = Map.put(policy, :output_index, String.to_integer(output_index))
 
       { policy, channel }
     end)
   end
 
   defp add_max_htlc_msat(channels_with_policies) do
-    IO.inspect channels_with_policies
-
     channels_with_policies
     |> Enum.map(fn { policy, channel } ->
       policy = Map.put(policy, :max_htlc_msat, channel.local_balance)
@@ -49,8 +46,57 @@ defmodule LndClient.Tools.HtlcExperiment do
   defp modify_policies(channels_with_policies) do
     channels_with_policies
     |> Enum.each(fn { policy, _channel } ->
-      IO.inspect policy
-      # LndClient.update_channel_policy(policy)
+      LndClient.update_channel_policy(%{
+        txid: policy.txid,
+        output_index: policy.output_index,
+        base_fee_msat: 900,
+        fee_rate: 0.0005,
+        time_lock_delta: 18,
+        max_htlc_msat: (policy.max_htlc_msat * 1000)
+        })
     end)
+  end
+
+  def restore_max_htlc_msat_to_capacity do
+    LndClient.get_channels.channels
+    |> add_empty_policies
+    |> extract_channel_points
+    |> extract_txid_and_output_index
+    |> set_max_htlc_to_capacity
+    |> restore_policies
+  end
+
+  defp set_max_htlc_to_capacity(channels_with_policies) do
+    channels_with_policies
+    |> Enum.map(fn { policy, channel } ->
+      policy = Map.put(policy, :restore_max_htlc_msat, channel.capacity)
+
+      { policy, channel }
+    end)
+  end
+
+  defp restore_policies(channels_with_policies) do
+    channels_with_policies
+    |> Enum.each(fn { policy, _channel } ->
+      LndClient.update_channel_policy(%{
+        txid: policy.txid,
+        output_index: policy.output_index,
+        base_fee_msat: 1,
+        fee_rate: 0.0025,
+        time_lock_delta: 18,
+        max_htlc_msat: (policy.restore_max_htlc_msat * 1000)
+        })
+    end)
+  end
+
+  def update_channel_policy(%{  max_htlc_msat: max_htlc_msat, base_fee_msat: base_fee_msat, fee_rate: fee_rate, output_index: output_index, csv_delay: csv_delay, txid: txid}) do
+    LndClient.update_channel_policy(%{
+      max_htlc_msat: max_htlc_msat,
+      base_fee_msat: base_fee_msat,
+      fee_rate: fee_rate,
+      output_index: output_index,
+      time_lock_delta: csv_delay,
+      txid: txid
+      })
   end
 end
