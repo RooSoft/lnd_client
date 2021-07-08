@@ -63,29 +63,36 @@ defmodule LndClient.Tools.HtlcExperiment do
     |> extract_channel_points
     |> extract_txid_and_output_index
     |> set_max_htlc_to_capacity
+    |> add_local_reserve
     |> restore_policies
   end
 
   defp set_max_htlc_to_capacity(channels_with_policies) do
     channels_with_policies
     |> Enum.map(fn { policy, channel } ->
-      policy = Map.put(policy, :max_htlc_msat, channel.capacity)
-
+      policy = Map.put(policy, :capacity, channel.capacity)
       { policy, channel }
     end)
   end
 
-  # not working
+  defp add_local_reserve(channels_with_policies) do
+    channels_with_policies
+    |> Enum.map(fn { policy, channel } ->
+      policy = Map.put(policy, :local_reserve, channel.local_chan_reserve_sat)
+      { policy, channel }
+    end)
+  end
+
   defp restore_policies(channels_with_policies) do
     channels_with_policies
     |> Enum.each(fn { policy, channel } ->
       LndClient.update_channel_policy(%{
         txid: policy.txid,
         output_index: policy.output_index,
-        base_fee_msat: 1,
+        base_fee_msat: 250,
         fee_rate: 0.00025,
         time_lock_delta: 18,
-        max_htlc_msat: (policy.max_htlc_msat)
+        max_htlc_msat: ((policy.capacity - policy.local_reserve) * 1000)
         })
         IO.inspect policy
     end)
@@ -102,4 +109,3 @@ defmodule LndClient.Tools.HtlcExperiment do
       })
   end
 end
-
