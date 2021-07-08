@@ -97,15 +97,4 @@ defmodule LndClient.Tools.HtlcExperiment do
         IO.inspect policy
     end)
   end
-
-  def update_channel_policy(%{  max_htlc_msat: max_htlc_msat, base_fee_msat: base_fee_msat, fee_rate: fee_rate, output_index: output_index, csv_delay: csv_delay, txid: txid}) do
-    LndClient.update_channel_policy(%{
-      max_htlc_msat: max_htlc_msat,
-      base_fee_msat: base_fee_msat,
-      fee_rate: fee_rate,
-      output_index: output_index,
-      time_lock_delta: csv_delay,
-      txid: txid
-      })
-  end
 end
