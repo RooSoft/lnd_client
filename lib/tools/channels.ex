@@ -84,4 +84,18 @@ defmodule LndClient.Tools.Channels do
       txid: txid
       })
   end
+
+  def close_channel(channel, force, target_conf, sat_per_vbyte, delivery_address) do
+    [txid | [output_index | []]] = String.split(channel, ":")
+
+    LndClient.close_channel(%{
+      txid: txid,
+      output_index: String.to_integer(output_index),
+      force: force,
+      target_conf: target_conf,
+      sat_per_vbyte: sat_per_vbyte,
+      delivery_address: delivery_address
+      })
+  end
+
 end
