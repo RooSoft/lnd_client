@@ -33,11 +33,31 @@ defmodule LndClient do
   def get_channel(id) do
     GenServer.call(__MODULE__, { :get_channel, %{ id: id } })
   end
-  
+
+  def close_channel(%{
+    txid: txid,
+    output_index: output_index,
+    force: force,
+    target_conf: target_conf,
+    sat_per_vbyte: sat_per_vbyte,
+    delivery_address: delivery_address
+    }) do
+    GenServer.call(__MODULE__, {
+      :close_channel, %{
+        txid: txid,
+        output_index: output_index,
+        force: force,
+        target_conf: target_conf,
+        sat_per_vbyte: sat_per_vbyte,
+        delivery_address: delivery_address
+      }
+    })
+  end
+
   def get_node_balance() do
     GenServer.call(__MODULE__, :get_node_balance)
   end
-  
+
   def get_wallet_balance() do
     GenServer.call(__MODULE__, :get_wallet_balance)
   end
@@ -79,7 +99,7 @@ defmodule LndClient do
 
     { :ok, state }
   end
-  
+
   def handle_call(:get_wallet_balance, _from, state) do
     { :ok, wallet_info } = Lnrpc.Lightning.Stub.wallet_balance(
       state.connection,
@@ -88,7 +108,38 @@ defmodule LndClient do
     )
     { :reply, wallet_info, state}
   end
-  
+
+  def handle_call({:close_channel, %{
+    txid: txid,
+    output_index: output_index,
+    force: force,
+    target_conf: target_conf,
+    sat_per_vbyte: sat_per_vbyte,
+    delivery_address: delivery_address
+  }}, _from, state) do
+
+    channel_point = %{
+      funding_txid: {
+        :funding_txid_str, txid
+      },
+      output_index: output_index
+    }
+
+    params = %{
+      channel_point: channel_point,
+      force: force,
+      target_conf: target_conf,
+      sat_per_vbyte: sat_per_vbyte,
+      delivery_address: delivery_address
+    }
+    { :ok, close_request } = Lnrpc.Lightning.Stub.close_channel(
+      state.connection,
+      Lnrpc.CloseChannelRequest.new(params),
+      metadata: %{macaroon: state.macaroon}
+    )
+    { :reply, close_request, state}
+  end
+
   def handle_call(:get_node_balance, _from, state) do
     { :ok, balance_info } = Lnrpc.Lightning.Stub.channel_balance(
       state.connection,
