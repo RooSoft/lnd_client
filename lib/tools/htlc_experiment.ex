@@ -50,7 +50,7 @@ defmodule LndClient.Tools.HtlcExperiment do
         txid: policy.txid,
         output_index: policy.output_index,
         base_fee_msat: 900,
-        fee_rate: 0.0005,
+        fee_rate: 0.00025,
         time_lock_delta: 18,
         max_htlc_msat: (policy.max_htlc_msat * 1000)
         })
@@ -69,23 +69,25 @@ defmodule LndClient.Tools.HtlcExperiment do
   defp set_max_htlc_to_capacity(channels_with_policies) do
     channels_with_policies
     |> Enum.map(fn { policy, channel } ->
-      policy = Map.put(policy, :restore_max_htlc_msat, channel.capacity)
+      policy = Map.put(policy, :max_htlc_msat, channel.capacity)
 
       { policy, channel }
     end)
   end
 
+  # not working
   defp restore_policies(channels_with_policies) do
     channels_with_policies
-    |> Enum.each(fn { policy, _channel } ->
+    |> Enum.each(fn { policy, channel } ->
       LndClient.update_channel_policy(%{
         txid: policy.txid,
         output_index: policy.output_index,
         base_fee_msat: 1,
-        fee_rate: 0.0025,
+        fee_rate: 0.00025,
         time_lock_delta: 18,
-        max_htlc_msat: (policy.restore_max_htlc_msat * 1000)
+        max_htlc_msat: (policy.max_htlc_msat)
         })
+        IO.inspect policy
     end)
   end
 
@@ -100,3 +102,4 @@ defmodule LndClient.Tools.HtlcExperiment do
       })
   end
 end
+
