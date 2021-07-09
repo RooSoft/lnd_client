@@ -305,7 +305,9 @@ defmodule LndClient do
 
     case output do
       { :ok, channel } -> { :reply, IO.inspect(channel), state}
-      { :error, error } -> IO.inspect error
+      { :error, error } ->
+        IO.puts "AN ERROR OCCURED"
+        IO.inspect error
     end
   end
 
