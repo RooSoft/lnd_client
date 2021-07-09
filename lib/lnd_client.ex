@@ -14,6 +14,22 @@ defmodule LndClient do
     GenServer.call(__MODULE__, :get_info)
   end
 
+  def get_fee_report() do
+    GenServer.call(__MODULE__, :get_fee_report)
+  end
+
+  def get_forwarding_history() do
+    GenServer.call(__MODULE__, :get_forwarding_history)
+  end
+
+  def get_network_info() do
+    GenServer.call(__MODULE__, :get_network_info)
+  end
+
+  def describe_graph() do
+    GenServer.call(__MODULE__, :describe_graph)
+  end
+
   def subscribe_htlc_events(pid) do
     GenServer.call(__MODULE__, { :subscribe_htlc_events, %{ pid: pid } })
   end
@@ -32,6 +48,32 @@ defmodule LndClient do
 
   def get_channel(id) do
     GenServer.call(__MODULE__, { :get_channel, %{ id: id } })
+  end
+
+  def close_channel(%{
+    txid: txid,
+    output_index: output_index,
+    force: force,
+    target_conf: target_conf,
+    sat_per_vbyte: sat_per_vbyte
+    }) do
+    GenServer.call(__MODULE__, {
+      :close_channel, %{
+        txid: txid,
+        output_index: output_index,
+        force: force,
+        target_conf: target_conf,
+        sat_per_vbyte: sat_per_vbyte
+      }
+    })
+  end
+
+  def get_node_balance() do
+    GenServer.call(__MODULE__, :get_node_balance)
+  end
+
+  def get_wallet_balance() do
+    GenServer.call(__MODULE__, :get_wallet_balance)
   end
 
   @forwarding_history_defaults %{ max_events: 100, offset: 0, start_time: nil, end_time: nil }
@@ -70,6 +112,94 @@ defmodule LndClient do
     state = Connectivity.connect(server, cert_path, macaroon_path)
 
     { :ok, state }
+  end
+
+  def handle_call(:get_wallet_balance, _from, state) do
+    { :ok, wallet_info } = Lnrpc.Lightning.Stub.wallet_balance(
+      state.connection,
+      Lnrpc.WalletBalanceRequest.new(),
+      metadata: %{macaroon: state.macaroon}
+    )
+    { :reply, wallet_info, state}
+  end
+
+  def handle_call(:get_fee_report, _from, state) do
+    { :ok, report } = Lnrpc.Lightning.Stub.fee_report(
+      state.connection,
+      Lnrpc.FeeReportRequest.new(),
+      metadata: %{macaroon: state.macaroon}
+    )
+    { :reply, report, state}
+  end
+
+  def handle_call(:get_forwarding_history, _from, state) do
+    { :ok, history } = Lnrpc.Lightning.Stub.forwarding_history(
+      state.connection,
+      Lnrpc.ForwardingHistoryRequest.new(),
+      metadata: %{macaroon: state.macaroon}
+    )
+    { :reply, history, state}
+  end
+
+  def handle_call(:get_network_info, _from, state) do
+    { :ok, network_info } = Lnrpc.Lightning.Stub.get_network_info(
+      state.connection,
+      Lnrpc.NetworkInfoRequest.new(),
+      metadata: %{macaroon: state.macaroon}
+    )
+    { :reply, network_info, state}
+  end
+
+  def handle_call(:describe_graph, _from, state) do
+    { :ok, graph } = Lnrpc.Lightning.Stub.describe_graph(
+      state.connection,
+      Lnrpc.ChannelGraphRequest.new(),
+      metadata: %{macaroon: state.macaroon}
+    )
+    { :reply, graph, state}
+  end
+
+  def handle_call({:close_channel, %{
+    txid: txid,
+    output_index: output_index,
+    force: force,
+    target_conf: target_conf,
+    sat_per_vbyte: sat_per_vbyte
+  }}, _from, state) do
+
+    channel_point = %{
+      funding_txid: {
+        :funding_txid_str, txid
+      },
+      output_index: output_index
+    }
+
+    params = %{
+      channel_point: channel_point,
+      force: force,
+      target_conf: target_conf,
+      sat_per_vbyte: sat_per_vbyte
+    }
+
+    output = Lnrpc.Lightning.Stub.close_channel(
+      state.connection,
+      Lnrpc.CloseChannelRequest.new(params),
+      metadata: %{macaroon: state.macaroon}
+    )
+
+    case output do
+      { :ok, channel } -> { :reply, IO.inspect(channel), state}
+      { :error, error } -> IO.inspect error
+    end
+  end
+
+  def handle_call(:get_node_balance, _from, state) do
+    { :ok, balance_info } = Lnrpc.Lightning.Stub.channel_balance(
+      state.connection,
+      Lnrpc.ChannelBalanceRequest.new(),
+      metadata: %{macaroon: state.macaroon}
+    )
+    { :reply, balance_info, state}
   end
 
   def handle_call(:get_info, _from, state) do
@@ -208,3 +338,4 @@ defmodule LndClient do
   Connectivity.disconnect(state.connection)
   end
 end
+
