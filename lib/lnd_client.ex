@@ -18,6 +18,10 @@ defmodule LndClient do
     GenServer.call(__MODULE__, :get_fee_report)
   end
 
+  def get_forwarding_history() do
+    GenServer.call(__MODULE__, :get_forwarding_history)
+  end
+
   def subscribe_htlc_events(pid) do
     GenServer.call(__MODULE__, { :subscribe_htlc_events, %{ pid: pid } })
   end
@@ -118,6 +122,15 @@ defmodule LndClient do
       metadata: %{macaroon: state.macaroon}
     )
     { :reply, report, state}
+  end
+
+  def handle_call(:get_forwarding_history, _from, state) do
+    { :ok, history } = Lnrpc.Lightning.Stub.forwarding_history(
+      state.connection,
+      Lnrpc.ForwardingHistoryRequest.new(),
+      metadata: %{macaroon: state.macaroon}
+    )
+    { :reply, history, state}
   end
 
   def handle_call({:close_channel, %{
