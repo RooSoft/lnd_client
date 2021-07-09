@@ -26,6 +26,10 @@ defmodule LndClient do
     GenServer.call(__MODULE__, :get_network_info)
   end
 
+  def describe_graph() do
+    GenServer.call(__MODULE__, :describe_graph)
+  end
+
   def subscribe_htlc_events(pid) do
     GenServer.call(__MODULE__, { :subscribe_htlc_events, %{ pid: pid } })
   end
@@ -144,6 +148,15 @@ defmodule LndClient do
       metadata: %{macaroon: state.macaroon}
     )
     { :reply, network_info, state}
+  end
+
+  def handle_call(:describe_graph, _from, state) do
+    { :ok, graph } = Lnrpc.Lightning.Stub.describe_graph(
+      state.connection,
+      Lnrpc.ChannelGraphRequest.new(),
+      metadata: %{macaroon: state.macaroon}
+    )
+    { :reply, graph, state}
   end
 
   def handle_call({:close_channel, %{
@@ -325,3 +338,4 @@ defmodule LndClient do
   Connectivity.disconnect(state.connection)
   end
 end
+
