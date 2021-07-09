@@ -85,7 +85,7 @@ defmodule LndClient.Tools.HtlcExperiment do
 
   defp restore_policies(channels_with_policies) do
     channels_with_policies
-    |> Enum.each(fn { policy, channel } ->
+    |> Enum.each(fn { policy, _channel } ->
       LndClient.update_channel_policy(%{
         txid: policy.txid,
         output_index: policy.output_index,

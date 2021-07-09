@@ -338,4 +338,3 @@ defmodule LndClient do
   Connectivity.disconnect(state.connection)
   end
 end
-
