@@ -14,6 +14,10 @@ defmodule LndClient do
     GenServer.call(__MODULE__, :get_info)
   end
 
+  def get_fee_report() do
+    GenServer.call(__MODULE__, :get_fee_report)
+  end
+
   def subscribe_htlc_events(pid) do
     GenServer.call(__MODULE__, { :subscribe_htlc_events, %{ pid: pid } })
   end
@@ -105,6 +109,15 @@ defmodule LndClient do
       metadata: %{macaroon: state.macaroon}
     )
     { :reply, wallet_info, state}
+  end
+
+  def handle_call(:get_fee_report, _from, state) do
+    { :ok, report } = Lnrpc.Lightning.Stub.fee_report(
+      state.connection,
+      Lnrpc.FeeReportRequest.new(),
+      metadata: %{macaroon: state.macaroon}
+    )
+    { :reply, report, state}
   end
 
   def handle_call({:close_channel, %{
