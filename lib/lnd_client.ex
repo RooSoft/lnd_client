@@ -309,6 +309,14 @@ defmodule LndClient do
     end
   end
 
+  def handle_info(whatever, socket) do
+    IO.puts "---- got gun trailers ----"
+    IO.inspect whatever
+    IO.puts "---- end gun trailers ----"
+
+    {:noreply, socket}
+  end
+
   def datetime_to_unix nil do
     nil
   end
