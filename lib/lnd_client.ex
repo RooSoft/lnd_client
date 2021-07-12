@@ -46,6 +46,10 @@ defmodule LndClient do
     GenServer.call(__MODULE__, { :get_channel, %{ id: id } })
   end
 
+  def open_channel(%LndClient.Models.OpenChannelRequest{} = request) do
+    GenServer.call(__MODULE__, { :open_channel, request})
+  end
+
   def close_channel(%{
     txid: txid,
     output_index: output_index,
@@ -144,6 +148,25 @@ defmodule LndClient do
       metadata: %{macaroon: state.macaroon}
     )
     { :reply, graph, state}
+  end
+
+  def handle_call({:open_channel, %LndClient.Models.OpenChannelRequest{} = request}, _from, state) do
+    request_map = Map.from_struct(request)
+
+    IO.inspect request_map
+
+    output = Lnrpc.Lightning.Stub.open_channel(
+      state.connection,
+      Lnrpc.OpenChannelRequest.new(request_map),
+      metadata: %{macaroon: state.macaroon}
+    )
+
+    case output do
+      { :ok, result } -> {:reply, IO.inspect(result), state}
+      { :error, error } ->
+        IO.puts "ERROR OPENING CHANNEL:"
+        IO.inspect error
+    end
   end
 
   def handle_call({:close_channel, %{

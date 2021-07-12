@@ -1,9 +1,25 @@
 defmodule LndClient.Tools.Channels do
-
-  def get_small_channels(maximum_size \\ 3_999_000, is_active \\ true) do
+  def get_small_channels(maximum_size \\ 3_999_000, _is_active \\ true) do
     LndClient.get_channels.channels
     |> Stream.filter(fn channel -> channel.capacity < maximum_size end)
     |> Enum.each(&print_small_channels/1)
+  end
+
+  def open_channel_to_alice(pub_key, channel_size) do
+    binary_pub_key = pub_key
+    |> String.upcase()
+    |> Base.decode16!
+
+    request = %LndClient.Models.OpenChannelRequest{
+      node_pubkey: binary_pub_key,
+      local_funding_amount: channel_size
+    }
+
+    open_channel(request)
+  end
+
+  def open_channel(request) do
+    LndClient.open_channel(request)
   end
 
   defp print_small_channels(channel) do
@@ -11,7 +27,7 @@ defmodule LndClient.Tools.Channels do
     IO.puts "#{node_alias} has only a #{channel.capacity} sat capacity"
   end
 
-  def get_large_channels(minimum_size \\ 10_000_000, is_active \\ true) do
+  def get_large_channels(minimum_size \\ 10_000_000, _is_active \\ true) do
     LndClient.get_channels.channels
     |> Stream.filter(fn channel -> channel.capacity > minimum_size end)
     |> Enum.each(&print_large_channels/1)
