@@ -5,7 +5,7 @@ defmodule LndClient.Tools.Channels do
     |> Enum.each(&print_small_channels/1)
   end
 
-  def open_channel_to_alice(pub_key, channel_size) do
+  def open_channel(pub_key, channel_size) do
     binary_pub_key = pub_key
     |> String.upcase()
     |> Base.decode16!
