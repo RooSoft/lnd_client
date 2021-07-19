@@ -2,7 +2,11 @@ defmodule LndClient do
   use GenServer
 
   alias LndClient.Connectivity, as: Connectivity
-  alias LndClient.Models.{OpenChannelRequest, ListInvoiceRequest}
+  alias LndClient.Models.{
+    OpenChannelRequest,
+    ListInvoiceRequest,
+    ListPaymentsRequest
+  }
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
@@ -53,7 +57,11 @@ defmodule LndClient do
   end
 
   def get_invoices(%ListInvoiceRequest{} = request \\ %ListInvoiceRequest{}) do
-    GenServer.call(__MODULE__, { :list_invoice, request })
+    GenServer.call(__MODULE__, { :list_invoices, request })
+  end
+
+  def get_payments(%ListPaymentsRequest{} = request \\ %ListPaymentsRequest{}) do
+    GenServer.call(__MODULE__, { :list_payments, request })
   end
 
   def close_channel(%{
@@ -173,7 +181,7 @@ defmodule LndClient do
     end
   end
 
-  def handle_call({:list_invoice, %ListInvoiceRequest{} = request}, _from, state) do
+  def handle_call({:list_invoices, %ListInvoiceRequest{} = request}, _from, state) do
     request_map = Map.from_struct(request)
 
     output = Lnrpc.Lightning.Stub.list_invoices(
@@ -186,6 +194,23 @@ defmodule LndClient do
       { :ok, result } -> {:reply, result, state}
       { :error, error } ->
         IO.puts "ERROR LISTING CHANNELS:"
+        IO.inspect error
+    end
+  end
+
+  def handle_call({:list_payments, %ListPaymentsRequest{} = request}, _from, state) do
+    request_map = Map.from_struct(request)
+
+    output = Lnrpc.Lightning.Stub.list_payments(
+      state.connection,
+      Lnrpc.ListPaymentsRequest.new(request_map),
+      metadata: %{macaroon: state.macaroon}
+    )
+
+    case output do
+      { :ok, result } -> {:reply, result, state}
+      { :error, error } ->
+        IO.puts "ERROR LISTING PAYMENTS:"
         IO.inspect error
     end
   end
