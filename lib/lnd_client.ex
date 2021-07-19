@@ -167,52 +167,37 @@ defmodule LndClient do
   def handle_call({:open_channel, %OpenChannelRequest{} = request}, _from, state) do
     request_map = Map.from_struct(request)
 
-    output = Lnrpc.Lightning.Stub.open_channel(
+    { :ok, result } = Lnrpc.Lightning.Stub.open_channel(
       state.connection,
       Lnrpc.OpenChannelRequest.new(request_map),
       metadata: %{macaroon: state.macaroon}
     )
 
-    case output do
-      { :ok, result } -> {:reply, IO.inspect(result), state}
-      { :error, error } ->
-        IO.puts "ERROR OPENING CHANNEL:"
-        IO.inspect error
-    end
+    {:reply, IO.inspect(result), state}
   end
 
   def handle_call({:list_invoices, %ListInvoiceRequest{} = request}, _from, state) do
     request_map = Map.from_struct(request)
 
-    output = Lnrpc.Lightning.Stub.list_invoices(
+    { :ok, result } = Lnrpc.Lightning.Stub.list_invoices(
       state.connection,
       Lnrpc.ListInvoiceRequest.new(request_map),
       metadata: %{macaroon: state.macaroon}
     )
 
-    case output do
-      { :ok, result } -> {:reply, result, state}
-      { :error, error } ->
-        IO.puts "ERROR LISTING CHANNELS:"
-        IO.inspect error
-    end
+    {:reply, result, state}
   end
 
   def handle_call({:list_payments, %ListPaymentsRequest{} = request}, _from, state) do
     request_map = Map.from_struct(request)
 
-    output = Lnrpc.Lightning.Stub.list_payments(
+    { :ok, result } = Lnrpc.Lightning.Stub.list_payments(
       state.connection,
       Lnrpc.ListPaymentsRequest.new(request_map),
       metadata: %{macaroon: state.macaroon}
     )
 
-    case output do
-      { :ok, result } -> {:reply, result, state}
-      { :error, error } ->
-        IO.puts "ERROR LISTING PAYMENTS:"
-        IO.inspect error
-    end
+    {:reply, result, state}
   end
 
   def handle_call({:close_channel, %{
