@@ -50,7 +50,7 @@ defmodule LndClient.Tools.Channels do
 
   defp print_names_and_capacity(channel) do
     %Lnrpc.NodeInfo{ node: %Lnrpc.LightningNode{ alias: node_alias } } = LndClient.get_node_info(channel.remote_pubkey)
-    IO.puts "#{node_alias} Capacity:#{channel.capacity}, LocalBalance:#{channel.local_balance}"
+    IO.puts "#{node_alias} Capacity:#{channel.capacity}, LocalBalance:#{channel.local_balance}, RemoteBalance:#{channel.remote_balance}"
   end
 
   def get_stagnant_channels() do
