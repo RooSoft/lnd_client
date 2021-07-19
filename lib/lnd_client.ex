@@ -40,6 +40,10 @@ defmodule LndClient do
     GenServer.call(__MODULE__, { :subscribe_channel_graph, %{ pid: pid } })
   end
 
+  def subscribe_channel_event(%{ pid: pid } ) do
+    GenServer.call(__MODULE__, { :subscribe_channel_event, %{ pid: pid } })
+  end
+
   def get_node_info(pubkey, include_channels \\ false) do
     GenServer.call(__MODULE__, { :get_node_info, %{ pubkey: pubkey, include_channels: include_channels } })
   end
@@ -269,6 +273,16 @@ defmodule LndClient do
 
     pid
     |> LndClient.Managers.ChannelGraphManager.monitor()
+
+    { :reply, nil, state}
+  end
+
+  def handle_call({ :subscribe_channel_event, %{ pid: pid } }, _from, state) do
+    state
+    |> LndClient.Managers.ChannelEventManager.start_link()
+
+    pid
+    |> LndClient.Managers.ChannelEventManager.monitor()
 
     { :reply, nil, state}
   end
