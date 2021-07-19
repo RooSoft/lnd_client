@@ -43,7 +43,7 @@ LndClient.get_info
 ### Add this dependency in mix.exs
 
 ```elixir
-{:lnd_client, git: "https://git.roosoft.com/bitcoin/lightning/lnd_client.git", tag: "0.1.1"}
+{:lnd_client, git: "https://github.com/RooSoft/lnd_client.git", tag: "0.1"}
 ```
 
 ### Start the server, get node info and then stop the server
