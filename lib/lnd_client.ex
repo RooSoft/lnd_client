@@ -32,7 +32,7 @@ defmodule LndClient do
     GenServer.call(__MODULE__, :describe_graph)
   end
 
-  def subscribe_htlc_events(pid) do
+  def subscribe_htlc_events(%{pid: pid}) do
     GenServer.call(__MODULE__, { :subscribe_htlc_events, %{ pid: pid } })
   end
 
