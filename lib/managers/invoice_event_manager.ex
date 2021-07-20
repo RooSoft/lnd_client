@@ -1,7 +1,7 @@
 defmodule LndClient.Managers.InvoiceEventManager do
   use GenServer
 
-  def start_link(state) do
+  def start_link(state \\ nil) do
     IO.puts "start link"
     GenServer.start_link(__MODULE__, state, name: __MODULE__)
   end
