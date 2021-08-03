@@ -56,6 +56,10 @@ defmodule LndClient do
     GenServer.call(__MODULE__, { :get_channels, %{ active_only: active_only } })
   end
 
+  def get_closed_channels() do
+    GenServer.call(__MODULE__, { :get_closed_channels, %{} })
+  end
+
   def get_channel(id) do
     GenServer.call(__MODULE__, { :get_channel, %{ id: id } })
   end
@@ -316,6 +320,16 @@ defmodule LndClient do
     { :ok, channels } = Lnrpc.Lightning.Stub.list_channels(
       state.connection,
       Lnrpc.ListChannelsRequest.new(active_only: active_only),
+      metadata: %{macaroon: state.macaroon}
+    )
+
+    { :reply, channels, state}
+  end
+
+  def handle_call({ :get_closed_channels, %{} }, _from, state) do
+    { :ok, channels } = Lnrpc.Lightning.Stub.closed_channels(
+      state.connection,
+      Lnrpc.ClosedChannelsRequest.new(),
       metadata: %{macaroon: state.macaroon}
     )
 
