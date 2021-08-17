@@ -1,8 +1,16 @@
-# LndClient
+# LndClient ⚡
 
-Connects to the Lightning Network Daemon known as LND
+[![Open in Visual Studio Code](https://open.vscode.dev/badges/open-in-vscode.svg)](https://open.vscode.dev/roosoft/lnd_client)
+
+Connects to the [Lightning Network Daemon](https://github.com/lightningnetwork/lnd)'s [gRPC API](https://api.lightning.community/#lnd-grpc-api-reference) known as LND
 
 ## Prerequisites for umbrel users
+
+with a fresh clone of this project, run 
+
+```bash
+mix deps.get
+```
 
 copy those files from the umbrel to the computer running the app
 
@@ -35,7 +43,7 @@ LndClient.get_info
 ### Add this dependency in mix.exs
 
 ```elixir
-{:lnd_client, git: "https://git.roosoft.com/bitcoin/lightning/lnd_client.git", tag: "0.1.1"}
+{:lnd_client, git: "https://github.com/RooSoft/lnd_client.git", tag: "0.1"}
 ```
 
 ### Start the server, get node info and then stop the server
