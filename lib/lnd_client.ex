@@ -141,57 +141,61 @@ defmodule LndClient do
   end
 
   def handle_call(:get_wallet_balance, _from, state) do
-    { :ok, wallet_info } = Lnrpc.Lightning.Stub.wallet_balance(
+    result = Lnrpc.Lightning.Stub.wallet_balance(
       state.connection,
       Lnrpc.WalletBalanceRequest.new(),
       metadata: %{macaroon: state.macaroon}
     )
-    { :reply, wallet_info, state}
+
+    { :reply, result, state}
   end
 
   def handle_call(:get_fee_report, _from, state) do
-    { :ok, report } = Lnrpc.Lightning.Stub.fee_report(
+    result = Lnrpc.Lightning.Stub.fee_report(
       state.connection,
       Lnrpc.FeeReportRequest.new(),
       metadata: %{macaroon: state.macaroon}
     )
-    { :reply, report, state}
+
+    { :reply, result, state}
   end
 
   def handle_call(:get_network_info, _from, state) do
-    { :ok, network_info } = Lnrpc.Lightning.Stub.get_network_info(
+    result = Lnrpc.Lightning.Stub.get_network_info(
       state.connection,
       Lnrpc.NetworkInfoRequest.new(),
       metadata: %{macaroon: state.macaroon}
     )
-    { :reply, network_info, state}
+
+    { :reply, result, state}
   end
 
   def handle_call(:describe_graph, _from, state) do
-    { :ok, graph } = Lnrpc.Lightning.Stub.describe_graph(
+    result = Lnrpc.Lightning.Stub.describe_graph(
       state.connection,
       Lnrpc.ChannelGraphRequest.new(),
       metadata: %{macaroon: state.macaroon}
     )
-    { :reply, graph, state}
+
+    { :reply, result, state}
   end
 
   def handle_call({:open_channel, %OpenChannelRequest{} = request}, _from, state) do
     request_map = Map.from_struct(request)
 
-    { :ok, result } = Lnrpc.Lightning.Stub.open_channel(
+    result = Lnrpc.Lightning.Stub.open_channel(
       state.connection,
       Lnrpc.OpenChannelRequest.new(request_map),
       metadata: %{macaroon: state.macaroon}
     )
 
-    {:reply, IO.inspect(result), state}
+    {:reply, result, state}
   end
 
   def handle_call({:list_invoices, %ListInvoiceRequest{} = request}, _from, state) do
     request_map = Map.from_struct(request)
 
-    { :ok, result } = Lnrpc.Lightning.Stub.list_invoices(
+    result = Lnrpc.Lightning.Stub.list_invoices(
       state.connection,
       Lnrpc.ListInvoiceRequest.new(request_map),
       metadata: %{macaroon: state.macaroon}
@@ -203,7 +207,7 @@ defmodule LndClient do
   def handle_call({:list_payments, %ListPaymentsRequest{} = request}, _from, state) do
     request_map = Map.from_struct(request)
 
-    { :ok, result } = Lnrpc.Lightning.Stub.list_payments(
+    result = Lnrpc.Lightning.Stub.list_payments(
       state.connection,
       Lnrpc.ListPaymentsRequest.new(request_map),
       metadata: %{macaroon: state.macaroon}
@@ -234,25 +238,23 @@ defmodule LndClient do
       sat_per_vbyte: sat_per_vbyte
     }
 
-    output = Lnrpc.Lightning.Stub.close_channel(
+    result = Lnrpc.Lightning.Stub.close_channel(
       state.connection,
       Lnrpc.CloseChannelRequest.new(params),
       metadata: %{macaroon: state.macaroon}
     )
 
-    case output do
-      { :ok, channel } -> { :reply, IO.inspect(channel), state}
-      { :error, error } -> IO.inspect error
-    end
+    { :reply, result, state}
   end
 
   def handle_call(:get_node_balance, _from, state) do
-    { :ok, balance_info } = Lnrpc.Lightning.Stub.channel_balance(
+    result = Lnrpc.Lightning.Stub.channel_balance(
       state.connection,
       Lnrpc.ChannelBalanceRequest.new(),
       metadata: %{macaroon: state.macaroon}
     )
-    { :reply, balance_info, state}
+
+    { :reply, result, state}
   end
 
   def handle_call(:get_info, _from, state) do
@@ -327,13 +329,13 @@ defmodule LndClient do
   end
 
   def handle_call({ :get_closed_channels, %{} }, _from, state) do
-    { :ok, channels } = Lnrpc.Lightning.Stub.closed_channels(
+    result = Lnrpc.Lightning.Stub.closed_channels(
       state.connection,
       Lnrpc.ClosedChannelsRequest.new(),
       metadata: %{macaroon: state.macaroon}
     )
 
-    { :reply, channels, state}
+    { :reply, result, state}
   end
 
   def handle_call({ :get_channel, %{ id: id } }, _from, state) do
@@ -394,18 +396,13 @@ defmodule LndClient do
       min_htlc_msat_specified: false
     })
 
-    output = Lnrpc.Lightning.Stub.update_channel_policy(
+    result = Lnrpc.Lightning.Stub.update_channel_policy(
       state.connection,
       request,
       metadata: %{macaroon: state.macaroon}
     )
 
-    case output do
-      { :ok, channel } -> { :reply, IO.inspect(channel), state}
-      { :error, error } ->
-        IO.puts "AN ERROR OCCURED"
-        IO.inspect error
-    end
+    { :reply, result, state}
   end
 
   def handle_info(whatever, socket) do
