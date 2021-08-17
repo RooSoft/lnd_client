@@ -52,13 +52,13 @@ defmodule LndClient do
   end
 
   def handle_call(:get_info, _from, state) do
-    { :ok, info } = Lnrpc.Lightning.Stub.get_info(
+    result = Lnrpc.Lightning.Stub.get_info(
       state.connection,
       Lnrpc.GetInfoRequest.new(),
       metadata: %{macaroon: state.macaroon}
     )
 
-    { :reply, info, state}
+    { :reply, result, state}
   end
 
   def handle_call({ :subscribe_htlc_events, %{ pid: pid } }, _from, state) do
@@ -82,33 +82,33 @@ defmodule LndClient do
   end
 
   def handle_call({ :get_node_info, %{ pubkey: pubkey, include_channels: include_channels } }, _from, state) do
-    { :ok, node_info } = Lnrpc.Lightning.Stub.get_node_info(
+    result = Lnrpc.Lightning.Stub.get_node_info(
       state.connection,
       Lnrpc.NodeInfoRequest.new(pub_key: pubkey, include_channels: include_channels),
       metadata: %{macaroon: state.macaroon}
     )
 
-    { :reply, node_info, state}
+    { :reply, result, state}
   end
 
   def handle_call({ :get_channels, %{ active_only: active_only } }, _from, state) do
-    { :ok, channels } = Lnrpc.Lightning.Stub.list_channels(
+    result = Lnrpc.Lightning.Stub.list_channels(
       state.connection,
       Lnrpc.ListChannelsRequest.new(active_only: active_only),
       metadata: %{macaroon: state.macaroon}
     )
 
-    { :reply, channels, state}
+    { :reply, result, state}
   end
 
   def handle_call({ :get_channel, %{ id: id } }, _from, state) do
-    { :ok, channel } = Lnrpc.Lightning.Stub.get_chan_info(
+    result = Lnrpc.Lightning.Stub.get_chan_info(
       state.connection,
       Lnrpc.ChanInfoRequest.new(chan_id: id),
       metadata: %{macaroon: state.macaroon}
     )
 
-    { :reply, channel, state}
+    { :reply, result, state}
   end
 
   def handle_call({ :get_forwarding_history, %{
@@ -124,13 +124,13 @@ defmodule LndClient do
       index_offset: offset
     }
 
-    { :ok, forwards } = Lnrpc.Lightning.Stub.forwarding_history(
+    result = Lnrpc.Lightning.Stub.forwarding_history(
       state.connection,
       Lnrpc.ForwardingHistoryRequest.new(params),
       metadata: %{macaroon: state.macaroon}
     )
 
-    { :reply, forwards, state}
+    { :reply, result, state}
   end
 
   def datetime_to_unix nil do
@@ -146,6 +146,6 @@ defmodule LndClient do
   end
 
   def terminate(_reason, state) do # perform cleanup
-  Connectivity.disconnect(state.connection)
+    Connectivity.disconnect(state.connection)
   end
 end
