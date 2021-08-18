@@ -7,6 +7,9 @@ defmodule LndClient do
     ListInvoiceRequest,
     ListPaymentsRequest
   }
+  alias LndClient.Calls.{
+    GetForwardingHistory
+  }
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
@@ -348,26 +351,10 @@ defmodule LndClient do
     { :reply, result, state}
   end
 
-  def handle_call({ :get_forwarding_history, %{
-      start_time: start_time,
-      end_time: end_time,
-      max_events: max_events,
-      offset: offset
-    } }, _from, state) do
-    params = %{
-      start_time: datetime_to_unix(start_time),
-      end_time: datetime_to_unix(end_time),
-      num_max_events: max_events,
-      index_offset: offset
-    }
-
-    result = Lnrpc.Lightning.Stub.forwarding_history(
-      state.connection,
-      Lnrpc.ForwardingHistoryRequest.new(params),
-      metadata: %{macaroon: state.macaroon}
-    )
-
-    { :reply, result, state}
+  def handle_call({ :get_forwarding_history, params }, _from, state) do
+    { :reply,
+      GetForwardingHistory.handle(params, state.connection, state.macaroon),
+      state }
   end
 
   def handle_call({ :update_channel_policy, %{
