@@ -12,23 +12,50 @@ defmodule LndClient.Calls.GetForwardingHistory do
       index_offset: offset
     }
 
-    result = Lnrpc.Lightning.Stub.forwarding_history(
+    Lnrpc.Lightning.Stub.forwarding_history(
       connection,
       Lnrpc.ForwardingHistoryRequest.new(params),
       metadata: %{macaroon: macaroon}
     )
+    |> convert_dates
   end
 
+  defp convert_dates { :ok, forwarding_history } do
+    {
+      :ok,
+      forwarding_history.forwarding_events
+      |> Enum.map(fn forward ->
+        forward
+        |> Map.from_struct()
+        |> Map.put(:time, unix_to_datetime(forward.timestamp))
+        |> Map.drop([:amt_in, :amt_out, :fee, :timestamp, :timestamp_ns])
+      end)
+    }
+  end
 
-  def datetime_to_unix nil do
+  defp convert_dates {:error, _ } = result do
+    result
+  end
+
+  defp datetime_to_unix nil do
     nil
   end
 
-  def datetime_to_unix %NaiveDateTime{} = naivedatetime do
+  defp datetime_to_unix %NaiveDateTime{} = naivedatetime do
     datetime_to_unix(naivedatetime |> DateTime.from_naive!("Etc/UTC"))
   end
 
-  def datetime_to_unix %DateTime{} = datetime do
+  defp datetime_to_unix %DateTime{} = datetime do
     (datetime |> DateTime.to_unix)
+  end
+
+  defp unix_to_datetime nil do
+    nil
+  end
+
+  defp unix_to_datetime timestamp do
+    timestamp
+    |> DateTime.from_unix!()
+    |> DateTime.to_naive()
   end
 end
