@@ -103,10 +103,10 @@ defmodule LndClient do
   end
 
   @forwarding_history_defaults %{ max_events: 100, offset: 0, start_time: nil, end_time: nil }
-  def get_forwarding_history(parameters \\ %{}) do
-    parameters = Map.merge(@forwarding_history_defaults, parameters)
+  def get_forwarding_history(parameters \\ []) do
+    parameter_map = Enum.into(parameters, @forwarding_history_defaults)
 
-    GenServer.call(__MODULE__, { :get_forwarding_history, parameters })
+    GenServer.call(__MODULE__, { :get_forwarding_history, parameter_map })
   end
 
   def update_channel_policy(%{
