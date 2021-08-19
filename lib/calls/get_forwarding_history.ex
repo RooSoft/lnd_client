@@ -1,4 +1,6 @@
 defmodule LndClient.Calls.GetForwardingHistory do
+  alias LndClient.Convert
+
   def handle(%{
     start_time: start_time,
     end_time: end_time,
@@ -6,8 +8,8 @@ defmodule LndClient.Calls.GetForwardingHistory do
     offset: offset
   }, connection, macaroon) do
     params = %{
-      start_time: datetime_to_unix(start_time),
-      end_time: datetime_to_unix(end_time),
+      start_time: Convert.Date.datetime_to_unix(start_time),
+      end_time: Convert.Date.datetime_to_unix(end_time),
       num_max_events: max_events,
       index_offset: offset
     }
@@ -25,7 +27,7 @@ defmodule LndClient.Calls.GetForwardingHistory do
     |> Enum.map(fn forward ->
       forward
       |> Map.from_struct()
-      |> Map.put(:time, unix_to_datetime(forward.timestamp))
+      |> Map.put(:time, Convert.Date.unix_to_datetime(forward.timestamp))
       |> Map.drop([:amt_in, :amt_out, :fee, :timestamp, :timestamp_ns])
     end)
 
@@ -39,27 +41,5 @@ defmodule LndClient.Calls.GetForwardingHistory do
 
   defp convert_dates {:error, _ } = result do
     result
-  end
-
-  defp datetime_to_unix nil do
-    nil
-  end
-
-  defp datetime_to_unix %NaiveDateTime{} = naivedatetime do
-    datetime_to_unix(naivedatetime |> DateTime.from_naive!("Etc/UTC"))
-  end
-
-  defp datetime_to_unix %DateTime{} = datetime do
-    (datetime |> DateTime.to_unix)
-  end
-
-  defp unix_to_datetime nil do
-    nil
-  end
-
-  defp unix_to_datetime timestamp do
-    timestamp
-    |> DateTime.from_unix!()
-    |> DateTime.to_naive()
   end
 end
