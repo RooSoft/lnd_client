@@ -31,23 +31,33 @@ defmodule LndClient.Calls.GetForwardingHistory do
   end
 
   defp convert_result { :ok, forwarding_history } do
-    forwarding_events = forwarding_history.forwarding_events
-    |> Enum.map(fn forward ->
-      forward
-      |> Map.from_struct()
-      |> Map.put(:time, Convert.Date.unix_to_datetime(forward.timestamp))
-      |> Map.drop([:amt_in, :amt_out, :fee, :timestamp, :timestamp_ns])
-    end)
-
-    {
-      :ok,
-      forwarding_history
-      |> Map.put(:forwarding_events, forwarding_events)
-      |> Map.from_struct()
-    }
+    forwarding_history.forwarding_events
+    |> convert_forwarding_events
+    |> create_return_value(forwarding_history)
   end
 
   defp convert_result {:error, _ } = result do
     result
+  end
+
+  defp convert_forwarding_events forwarding_events do
+    forwarding_events
+    |> Enum.map(&convert_forwarding_event/1)
+  end
+
+  defp create_return_value forwarding_events, forwarding_history do
+    {
+      :ok,
+      forwarding_history
+      |> Map.from_struct()
+      |> Map.put(:forwarding_events, forwarding_events)
+    }
+  end
+
+  defp convert_forwarding_event forwarding_event do
+    forwarding_event
+    |> Map.from_struct()
+    |> Map.put(:time, Convert.Date.unix_to_datetime(forwarding_event.timestamp))
+    |> Map.drop([:amt_in, :amt_out, :fee, :timestamp, :timestamp_ns])
   end
 end
