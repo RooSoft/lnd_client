@@ -1,28 +1,36 @@
 defmodule LndClient.Calls.GetForwardingHistory do
   alias LndClient.Convert
 
-  def handle(%{
+  def handle(params, connection, macaroon) do
+    params
+    |> convert_params
+    |> call_node(connection, macaroon)
+    |> convert_result
+  end
+
+  defp convert_params %{
     start_time: start_time,
     end_time: end_time,
     max_events: max_events,
     offset: offset
-  }, connection, macaroon) do
-    params = %{
+  } do
+    %{
       start_time: Convert.Date.datetime_to_unix(start_time),
       end_time: Convert.Date.datetime_to_unix(end_time),
       num_max_events: max_events,
       index_offset: offset
     }
+  end
 
+  defp call_node params, connection, macaroon do
     Lnrpc.Lightning.Stub.forwarding_history(
       connection,
       Lnrpc.ForwardingHistoryRequest.new(params),
       metadata: %{macaroon: macaroon}
     )
-    |> convert_dates
   end
 
-  defp convert_dates { :ok, forwarding_history } do
+  defp convert_result { :ok, forwarding_history } do
     forwarding_events = forwarding_history.forwarding_events
     |> Enum.map(fn forward ->
       forward
@@ -39,7 +47,7 @@ defmodule LndClient.Calls.GetForwardingHistory do
     }
   end
 
-  defp convert_dates {:error, _ } = result do
+  defp convert_result {:error, _ } = result do
     result
   end
 end
