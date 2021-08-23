@@ -58,6 +58,6 @@ defmodule LndClient.Calls.GetForwardingHistory do
     forwarding_event
     |> Map.from_struct()
     |> Map.put(:time, Convert.Date.unix_to_datetime(forwarding_event.timestamp))
-    |> Map.drop([:amt_in, :amt_out, :fee, :timestamp, :timestamp_ns])
+    |> Map.drop([:amt_in, :amt_out, :fee, :timestamp])
   end
 end
