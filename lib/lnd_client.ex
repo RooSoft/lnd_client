@@ -40,6 +40,10 @@ defmodule LndClient do
     Connectivity.connect(server, cert_path, macaroon_path)
   end
 
+  def subscribe_uptime(%{pid: pid}) do
+    GenServer.call(__MODULE__, { :subscribe_uptime, %{ pid: pid } })
+  end
+
   def get_info() do
     GenServer.call(__MODULE__, :get_info)
   end
@@ -154,6 +158,11 @@ defmodule LndClient do
     })
   end
 
+  def handle_call({ :subscribe_uptime, %{ pid: pid } }, _from, state) do
+    { :reply, nil,
+      state
+      |> Map.put(:uptime_subscription, pid)}
+  end
 
   def handle_call(:get_wallet_balance, _from, state) do
     result = Lnrpc.Lightning.Stub.wallet_balance(
@@ -288,7 +297,7 @@ defmodule LndClient do
 
     { :reply, nil,
       state
-      |> record_subscription(subscription_type, pid)}
+      |> record_node_event_subscription(subscription_type, pid)}
   end
 
   def handle_call({ :subscribe_channel_graph = subscription_type, %{ pid: pid } }, _from, state) do
@@ -297,14 +306,16 @@ defmodule LndClient do
 
     { :reply, nil,
       state
-      |> record_subscription(subscription_type, pid)}
+      |> record_node_event_subscription(subscription_type, pid)}
   end
 
   def handle_call({ :subscribe_channel_event = subscription_type, %{ pid: pid } }, _from, state) do
     state
     |> subscribe_to_node_event(pid, subscription_type)
 
-    { :reply, nil, state }
+    { :reply, nil,
+      state
+      |> record_node_event_subscription(subscription_type, pid)}
   end
 
 
@@ -314,7 +325,7 @@ defmodule LndClient do
 
     { :reply, nil,
       state
-      |> record_subscription(subscription_type, pid)}
+      |> record_node_event_subscription(subscription_type, pid)}
   end
 
   def handle_call({ :get_node_info, %{ pubkey: pubkey, include_channels: include_channels } }, _from, state) do
@@ -401,11 +412,19 @@ defmodule LndClient do
   def handle_info({:gun_down, _pid, _protocol, _state, _}, state) do
     Logger.warning "LND node is down"
 
+    if (state.uptime_subscription != nil) do
+      send(state.uptime_subscription, :down)
+    end
+
     {:noreply, state}
   end
 
   def handle_info({:gun_up, _pid, _protocol}, state) do
     Logger.warning "LND node is back online, reinitializing LndClient"
+
+    if (state.uptime_subscription != nil) do
+      send(state.uptime_subscription, :up)
+    end
 
     # this delay proved necessary because the node was apparently
     # not ready at that point to handle new connections
@@ -423,7 +442,7 @@ defmodule LndClient do
     {:noreply, state}
   end
 
-  def record_subscription(state, subscription, pid) do
+  def record_node_event_subscription(state, subscription, pid) do
     subscriptions = state.subscriptions
     |> Map.put(subscription, pid)
 
@@ -444,7 +463,7 @@ defmodule LndClient do
     state
   end
 
-  def subscribe_to_node_event state, pid, :subscribe_htlc_events = subscription_type do
+  def subscribe_to_node_event state, pid, :subscribe_htlc_events do
     state
     |> LndClient.Managers.HtlcEventManager.start_link()
 
@@ -452,10 +471,9 @@ defmodule LndClient do
     |> LndClient.Managers.HtlcEventManager.monitor()
 
     state
-    |> record_subscription(subscription_type, pid)
   end
 
-  def subscribe_to_node_event state, pid, :subscribe_channel_event = subscription_type do
+  def subscribe_to_node_event state, pid, :subscribe_channel_event do
     state
     |> LndClient.Managers.ChannelEventManager.start_link()
 
@@ -463,10 +481,9 @@ defmodule LndClient do
     |> LndClient.Managers.ChannelEventManager.monitor()
 
     state
-    |> record_subscription(subscription_type, pid)
   end
 
-  def subscribe_to_node_event state, pid, :subscribe_channel_graph = subscription_type do
+  def subscribe_to_node_event state, pid, :subscribe_channel_graph do
     state
     |> LndClient.Managers.ChannelGraphManager.start_link()
 
@@ -474,10 +491,9 @@ defmodule LndClient do
     |> LndClient.Managers.ChannelGraphManager.monitor()
 
     state
-    |> record_subscription(subscription_type, pid)
   end
 
-  def subscribe_to_node_event state, pid, :subscribe_invoices = subscription_type do
+  def subscribe_to_node_event state, pid, :subscribe_invoices do
     state
     |> LndClient.Managers.InvoiceEventManager.start_link()
 
@@ -485,7 +501,6 @@ defmodule LndClient do
     |> LndClient.Managers.InvoiceEventManager.monitor()
 
     state
-    |> record_subscription(subscription_type, pid)
   end
 
   def terminate(_reason, state) do # perform cleanup
