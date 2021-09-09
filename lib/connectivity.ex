@@ -3,7 +3,7 @@ defmodule LndClient.Connectivity do
     creds = get_creds(cert_path)
 
     { :ok, connection } = GRPC.Stub.connect(
-      server: node,
+      node,
       cred: creds,
       adapter_opts: %{http2_opts: %{keepalive: :infinity}}
     )
