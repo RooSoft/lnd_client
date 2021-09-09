@@ -34,7 +34,7 @@ defmodule LndClient do
 
   def connect do
     node = System.get_env("NODE") || "localhost:10009"
-    cert_path = System.get_env("CERT") || "~/.lnd/umbrel.cert"
+    cert_path = System.get_env("CERT") || "~/.lnd/lnd.cert"
     macaroon_path = System.get_env("MACAROON") || "~/.lnd/readonly.macaroon"
 
     Connectivity.connect(node, cert_path, macaroon_path)
