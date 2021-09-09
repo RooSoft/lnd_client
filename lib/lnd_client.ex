@@ -33,11 +33,11 @@ defmodule LndClient do
   end
 
   def connect do
-    server = System.get_env("SERVER") || "localhost:10009"
+    node = System.get_env("NODE") || "localhost:10009"
     cert_path = System.get_env("CERT") || "~/.lnd/umbrel.cert"
     macaroon_path = System.get_env("MACAROON") || "~/.lnd/readonly.macaroon"
 
-    Connectivity.connect(server, cert_path, macaroon_path)
+    Connectivity.connect(node, cert_path, macaroon_path)
   end
 
   def subscribe_uptime(%{pid: pid}) do
