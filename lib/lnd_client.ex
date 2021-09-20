@@ -12,6 +12,10 @@ defmodule LndClient do
     GetForwardingHistory
   }
 
+  def start() do
+    GenServer.start(__MODULE__, nil, name: __MODULE__)
+  end
+
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
@@ -20,11 +24,8 @@ defmodule LndClient do
     GenServer.stop(__MODULE__, reason, timeout)
   end
 
-  def init(_) do
-    state = connect()
-    |> init_subscriptions
-
-    { :ok, state }
+  def init(init_arg) do
+    {:ok, init_arg}
   end
 
   def init_subscriptions(state) do
@@ -32,12 +33,12 @@ defmodule LndClient do
     |> Map.put(:subscriptions, %{})
   end
 
-  def connect do
-    node = System.get_env("NODE") || "localhost:10009"
-    cert_path = System.get_env("CERT") || "~/.lnd/lnd.cert"
-    macaroon_path = System.get_env("MACAROON") || "~/.lnd/readonly.macaroon"
-
-    Connectivity.connect(node, cert_path, macaroon_path)
+  def connect node_uri, cert_path, macaroon_path do
+    GenServer.call(__MODULE__, { :connect, %{
+      node_uri: node_uri,
+      cert_path: cert_path,
+      macaroon_path: macaroon_path
+    }}, :infinity)
   end
 
   def subscribe_uptime(%{pid: pid}) do
@@ -156,6 +157,13 @@ defmodule LndClient do
         max_htlc_msat: max_htlc_msat
       }
     })
+  end
+
+  def handle_call({ :connect, details }, _from, _old_state) do
+    case Connectivity.connect(details) do
+      { :ok, state } = result -> { :reply, result, state }
+      { :error, error } = result -> { :reply, result, error }
+    end
   end
 
   def handle_call({ :subscribe_uptime, %{ pid: pid } }, _from, state) do
@@ -412,7 +420,7 @@ defmodule LndClient do
   def handle_info({:gun_down, _pid, _protocol, _state, _}, state) do
     Logger.warning "LND node is down"
 
-    if (state.uptime_subscription != nil) do
+    if state |> Map.has_key?(:uptime_subscription) do
       send(state.uptime_subscription, :down)
     end
 
@@ -443,22 +451,28 @@ defmodule LndClient do
   end
 
   def record_node_event_subscription(state, subscription, pid) do
-    subscriptions = state.subscriptions
-    |> Map.put(subscription, pid)
+    if state |> Map.has_key?(:subscriptions) do
+      subscriptions = state.subscriptions
+      |> Map.put(subscription, pid)
 
-    state
-    |> Map.put(:subscriptions, subscriptions)
+      state
+      |> Map.put(:subscriptions, subscriptions)
+    else
+      state
+    end
   end
 
   def reconnect_subscriptions(state) do
-    Map.keys(state.subscriptions)
-    |> Enum.reduce(state, fn subscription_type, state ->
-      pid = Map.get(state.subscriptions, subscription_type)
+    if state |> Map.has_key?(:subscriptions) do
+      Map.keys(state.subscriptions)
+      |> Enum.reduce(state, fn subscription_type, state ->
+        pid = Map.get(state.subscriptions, subscription_type)
 
-      Logger.info("Reconnection to #{subscription_type}")
+        Logger.info("Reconnection to #{subscription_type}")
 
-      state |> subscribe_to_node_event(pid, subscription_type)
-    end)
+        state |> subscribe_to_node_event(pid, subscription_type)
+      end)
+    end
 
     state
   end
@@ -503,7 +517,15 @@ defmodule LndClient do
     state
   end
 
-  def terminate(_reason, state) do # perform cleanup
-    Connectivity.disconnect(state.connection)
+  def terminate(_reason, nil) do
+    # no connection to close
+  end
+
+  def terminate(_reason, %{ connection: nil }) do
+    # no connection to close
+  end
+
+  def terminate(_reason, %{ connection: connection }) do # perform cleanup
+    Connectivity.disconnect(connection)
   end
 end
