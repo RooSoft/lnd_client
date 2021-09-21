@@ -1,6 +1,8 @@
 defmodule LndClient.Managers.ChannelGraphManager do
   use GenServer
 
+  require Logger
+
   def start_link(state) do
     GenServer.start_link(__MODULE__, state, name: __MODULE__)
   end
@@ -18,7 +20,7 @@ defmodule LndClient.Managers.ChannelGraphManager do
   end
 
   def handle_cast({:monitor, %{pid: pid}}, state) do
-    IO.puts "Will send channel graph events to #{inspect pid}"
+    Logger.info "Will send channel graph events to #{inspect pid}"
 
     response = Lnrpc.Lightning.Stub.subscribe_channel_graph(
       state.connection,
@@ -31,15 +33,18 @@ defmodule LndClient.Managers.ChannelGraphManager do
         stream
         |> decode_stream(pid)
 
+      { :error, %GRPC.RPCError{status: 2} } ->
+        Logger.warn "Disconnected from channel graph events"
+
       { :error, error } ->
-        IO.puts "Error receiving stream"
+        Logger.error "Unknown htlc GRPC error"
         IO.inspect error
     end
 
     {:noreply, state}
   end
 
-  def decode_stream stream, pid do
+  defp decode_stream stream, pid do
     stream
     |> Enum.each(fn
       {:ok, event} ->

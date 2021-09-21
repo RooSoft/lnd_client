@@ -13,24 +13,19 @@ defmodule LndClient do
   }
 
   def start() do
-    GenServer.start(__MODULE__, nil, name: __MODULE__)
+    GenServer.start(__MODULE__, %{} |> init_subscriptions, name: __MODULE__)
   end
 
   def start_link(_) do
-    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+    GenServer.start_link(__MODULE__, %{} |> init_subscriptions, name: __MODULE__)
   end
 
   def stop(reason \\ :normal, timeout \\ :infinity) do
     GenServer.stop(__MODULE__, reason, timeout)
   end
 
-  def init(init_arg) do
-    {:ok, init_arg}
-  end
-
-  def init_subscriptions(state) do
-    state
-    |> Map.put(:subscriptions, %{})
+  def init(state) do
+    {:ok, state }
   end
 
   def connect node_uri, cert_path, macaroon_path do
@@ -159,10 +154,16 @@ defmodule LndClient do
     })
   end
 
-  def handle_call({ :connect, details }, _from, _old_state) do
-    case Connectivity.connect(details) do
-      { :ok, state } = result -> { :reply, result, state }
-      { :error, error } = result -> { :reply, result, error }
+  def handle_call({ :connect, details }, _from, state) do
+     case Connectivity.connect(details) do
+      { :ok, %{ connection: connection, macaroon: macaroon } } = result ->
+          { :reply, result, state
+          |> Map.put(:connection, connection)
+          |> Map.put(:macaroon, macaroon)
+      }
+
+      { :error, _error } = result ->
+        { :reply, result, state }
     end
   end
 
@@ -300,39 +301,31 @@ defmodule LndClient do
   end
 
   def handle_call({ :subscribe_htlc_events = subscription_type, %{ pid: pid } }, _from, state) do
-    state
-    |> subscribe_to_node_event(pid, subscription_type)
-
     { :reply, nil,
       state
+      |> subscribe_to_node_event(pid, subscription_type)
       |> record_node_event_subscription(subscription_type, pid)}
   end
 
   def handle_call({ :subscribe_channel_graph = subscription_type, %{ pid: pid } }, _from, state) do
-    state
-    |> subscribe_to_node_event(pid, subscription_type)
-
     { :reply, nil,
       state
+      |> subscribe_to_node_event(pid, subscription_type)
       |> record_node_event_subscription(subscription_type, pid)}
   end
 
   def handle_call({ :subscribe_channel_event = subscription_type, %{ pid: pid } }, _from, state) do
-    state
-    |> subscribe_to_node_event(pid, subscription_type)
-
     { :reply, nil,
       state
+      |> subscribe_to_node_event(pid, subscription_type)
       |> record_node_event_subscription(subscription_type, pid)}
   end
 
 
   def handle_call({ :subscribe_invoices = subscription_type, %{ pid: pid } }, _from, state) do
-    state
-    |> subscribe_to_node_event(pid, subscription_type)
-
     { :reply, nil,
       state
+      |> subscribe_to_node_event(pid, subscription_type)
       |> record_node_event_subscription(subscription_type, pid)}
   end
 
@@ -451,30 +444,22 @@ defmodule LndClient do
   end
 
   def record_node_event_subscription(state, subscription, pid) do
-    if state |> Map.has_key?(:subscriptions) do
-      subscriptions = state.subscriptions
-      |> Map.put(subscription, pid)
+    subscriptions = state.subscriptions
+    |> Map.put(subscription, pid)
 
-      state
-      |> Map.put(:subscriptions, subscriptions)
-    else
-      state
-    end
+    state
+    |> Map.put(:subscriptions, subscriptions)
   end
 
   def reconnect_subscriptions(state) do
-    if state |> Map.has_key?(:subscriptions) do
-      Map.keys(state.subscriptions)
-      |> Enum.reduce(state, fn subscription_type, state ->
-        pid = Map.get(state.subscriptions, subscription_type)
+    Map.keys(state.subscriptions)
+    |> Enum.reduce(state, fn subscription_type, state ->
+      pid = Map.get(state.subscriptions, subscription_type)
 
-        Logger.info("Reconnection to #{subscription_type}")
+      Logger.info("Reconnection to #{subscription_type}")
 
-        state |> subscribe_to_node_event(pid, subscription_type)
-      end)
-    end
-
-    state
+      state |> subscribe_to_node_event(pid, subscription_type)
+    end)
   end
 
   def subscribe_to_node_event state, pid, :subscribe_htlc_events do
@@ -527,5 +512,11 @@ defmodule LndClient do
 
   def terminate(_reason, %{ connection: connection }) do # perform cleanup
     Connectivity.disconnect(connection)
+  end
+
+
+  defp init_subscriptions(state) do
+    state
+    |> Map.put(:subscriptions, %{})
   end
 end

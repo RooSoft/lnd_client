@@ -1,6 +1,8 @@
 defmodule LndClient.Managers.HtlcEventManager do
   use GenServer
 
+  require Logger
+
   def start_link(state) do
     GenServer.start_link(__MODULE__, state, name: __MODULE__)
   end
@@ -18,7 +20,7 @@ defmodule LndClient.Managers.HtlcEventManager do
   end
 
   def handle_cast({:monitor, %{pid: pid}}, state) do
-    IO.puts "Will send htlc events to #{inspect pid}"
+    Logger.info "Will send htlc events to #{inspect pid}"
 
     response = Routerrpc.Router.Stub.subscribe_htlc_events(
       state.connection,
@@ -31,15 +33,18 @@ defmodule LndClient.Managers.HtlcEventManager do
         stream
         |> decode_stream(pid)
 
+      { :error, %GRPC.RPCError{status: 2} } ->
+        Logger.warn "Disconnected from htlc events"
+
       { :error, error } ->
-        IO.puts "Error receiving stream"
+        Logger.error "Unknown htlc GRPC error"
         IO.inspect error
     end
 
     {:noreply, state}
   end
 
-  def decode_stream stream, pid do
+  defp decode_stream stream, pid do
     stream
     |> Enum.each(fn
       {:ok, event} ->
