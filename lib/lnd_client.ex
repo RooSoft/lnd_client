@@ -430,7 +430,7 @@ defmodule LndClient do
   def handle_info({:gun_up, _pid, _protocol}, state) do
     Logger.warning "LND node is back online, reinitializing LndClient"
 
-    if (state.uptime_subscription != nil) do
+    if state |> Map.has_key?(:uptime_subscription) do
       send(state.uptime_subscription, :up)
     end
 
