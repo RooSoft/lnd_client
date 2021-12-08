@@ -16,3 +16,15 @@ end
 LndClient.Tools.HtlcUpdates.start_link
 LndClient.Tools.InvoiceUpdates.start_link
 LndClient.Tools.ChannelUpdates.start_link
+
+defmodule Benchmark do
+  def measure(function) do
+    function
+    |> :timer.tc
+    |> elem(0)
+    |> Kernel./(1_000_000)
+  end
+end
+
+# example testing a long running function
+# Benchmark.measure(fn -> LndClient.describe_graph end)
