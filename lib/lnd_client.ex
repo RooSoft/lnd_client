@@ -12,6 +12,8 @@ defmodule LndClient do
     GetForwardingHistory
   }
 
+  @long_timeout 500_000
+
   def start() do
     GenServer.start(__MODULE__, %{} |> init_subscriptions, name: __MODULE__)
   end
@@ -53,7 +55,7 @@ defmodule LndClient do
   end
 
   def describe_graph() do
-    GenServer.call(__MODULE__, :describe_graph)
+    GenServer.call(__MODULE__, :describe_graph, @long_timeout)
   end
 
   def subscribe_htlc_events(%{pid: pid}) do
