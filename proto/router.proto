@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "rpc.proto";
+import "lightning.proto";
 
 package routerrpc;
 
@@ -279,6 +279,11 @@ message SendPaymentRequest {
     value is in milli-satoshis.
     */
     uint64 max_shard_size_msat = 21;
+
+    /*
+    If set, an AMP-payment will be attempted.
+    */
+    bool amp = 22;
 }
 
 message TrackPaymentRequest {
@@ -602,6 +607,8 @@ message ForwardFailEvent {
 }
 
 message SettleEvent {
+    // The revealed preimage.
+    bytes preimage = 1;
 }
 
 message LinkFailEvent {
