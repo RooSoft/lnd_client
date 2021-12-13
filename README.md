@@ -63,10 +63,10 @@ LndClient.stop
 ```bash
 cd proto
 
-curl -o rpc.proto -s https://raw.githubusercontent.com/lightningnetwork/lnd/master/lnrpc/rpc.proto
+curl -O https://raw.githubusercontent.com/lightningnetwork/lnd/master/lnrpc/lightning.proto
 curl -O https://raw.githubusercontent.com/lightningnetwork/lnd/master/lnrpc/routerrpc/router.proto
 
-protoc --elixir_out=plugins=grpc:../lib/gRPC rpc.proto
+protoc --elixir_out=plugins=grpc:../lib/gRPC lightning.proto
 protoc --elixir_out=plugins=grpc:../lib/gRPC router.proto
 
 cd ..
