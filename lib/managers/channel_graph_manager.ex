@@ -44,7 +44,7 @@ defmodule LndClient.Managers.ChannelGraphManager do
     {:noreply, state}
   end
 
-  defp decode_stream stream, pid do
+  defp decode_stream stream, %{pid: pid} do
     stream
     |> Enum.each(fn
       {:ok, event} ->

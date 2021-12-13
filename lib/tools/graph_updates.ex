@@ -18,7 +18,7 @@ defmodule LndClient.Tools.GraphUpdates do
   def handle_info(%Lnrpc.GraphTopologyUpdate{} = graph_topology_update, state) do
     now = DateTime.utc_now |> DateTime.to_string
 
-    IO.puts "---#{now}---"
+    IO.puts "--graph-topology-update----#{now}---"
     IO.inspect graph_topology_update
 
     {:noreply, state}
