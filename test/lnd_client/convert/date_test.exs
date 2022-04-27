@@ -9,13 +9,22 @@ defmodule LndClient.Convert.DateTest do
       }
     end
 
-    test "success: converts a date to unix timestamp", %{
+    test "success: converts a datetime to unix timestamp", %{
       datetime: datetime,
       unix_value: unix_value
     } do
       returned_timestamp = LndClient.Convert.Date.datetime_to_unix(datetime)
 
       assert returned_timestamp == unix_value
+    end
+
+    test "success: converts a unix timestamp to a datetime", %{
+      datetime: datetime,
+      unix_value: unix_value
+    } do
+      returned_datetime = LndClient.Convert.Date.unix_to_datetime(unix_value)
+
+      assert returned_datetime == datetime
     end
   end
 end
