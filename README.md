@@ -60,6 +60,13 @@ LndClient.stop
 
 [List of protos](https://api.lightning.community/#lnd-grpc-api-reference)
 
+Make sure protoc is properly installed. Here is how to do it on Debian.
+
+```bash
+sudo apt install -y protobuf-compiler
+mix escript.install hex protobuf
+```
+
 ```bash
 cd proto
 
