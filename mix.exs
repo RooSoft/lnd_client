@@ -4,8 +4,8 @@ defmodule LndClient.MixProject do
   def project do
     [
       app: :lnd_client,
-      version: "0.1.5",
-      elixir: "~> 1.11",
+      version: "0.1.6",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -21,7 +21,8 @@ defmodule LndClient.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:grpc, github: "elixir-grpc/grpc"},
+      {:grpc, "~> 0.5.0"},
+      {:protobuf, "~> 0.11.0"}
     ]
   end
 end

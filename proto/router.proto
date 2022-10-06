@@ -23,6 +23,16 @@ service Router {
     rpc TrackPaymentV2 (TrackPaymentRequest) returns (stream lnrpc.Payment);
 
     /*
+    TrackPayments returns an update stream for every payment that is not in a
+    terminal state. Note that if payments are in-flight while starting a new
+    subscription, the start of the payment stream could produce out-of-order
+    and/or duplicate events. In order to get updates for every in-flight
+    payment attempt make sure to subscribe to this method before initiating any
+    payments.
+    */
+    rpc TrackPayments (TrackPaymentsRequest) returns (stream lnrpc.Payment);
+
+    /*
     EstimateRouteFee allows callers to obtain a lower bound w.r.t how much it
     may cost to send an HTLC to the target end destination.
     */
@@ -284,6 +294,12 @@ message SendPaymentRequest {
     If set, an AMP-payment will be attempted.
     */
     bool amp = 22;
+
+    /*
+    The time preference for this payment. Set to -1 to optimize for fees
+    only, to 1 to optimize for reliability only or a value inbetween for a mix.
+    */
+    double time_pref = 23;
 }
 
 message TrackPaymentRequest {
@@ -295,6 +311,14 @@ message TrackPaymentRequest {
     that show which htlcs are still in flight are suppressed.
     */
     bool no_inflight_updates = 2;
+}
+
+message TrackPaymentsRequest {
+    /*
+    If set, only the final payment updates are streamed back. Intermediate
+    updates that show which htlcs are still in flight are suppressed.
+    */
+    bool no_inflight_updates = 1;
 }
 
 message RouteFeeRequest {
@@ -330,6 +354,14 @@ message SendToRouteRequest {
 
     // Route that should be used to attempt to complete the payment.
     lnrpc.Route route = 2;
+
+    /*
+    Whether the payment should be marked as failed when a temporary error is
+    returned from the given route. Set it to true so the payment won't be
+    failed unless a terminal error is occurred, such as payment timeout, no
+    routes, incorrect payment details, or insufficient funds.
+    */
+    bool skip_temp_err = 3;
 }
 
 message SendToRouteResponse {
@@ -360,6 +392,11 @@ message QueryMissionControlResponse {
 message XImportMissionControlRequest {
     // Node pair-level mission control state to be imported.
     repeated PairHistory pairs = 1;
+
+    // Whether to force override MC pair history. Note that even with force
+    // override the failure pair is imported before the success pair and both
+    // still clamp existing failure/success amounts.
+    bool force = 2;
 }
 
 message XImportMissionControlResponse {
@@ -678,7 +715,7 @@ enum PaymentState {
     FAILED_NO_ROUTE = 3;
 
     /*
-    A non-recoverable error has occured.
+    A non-recoverable error has occurred.
     */
     FAILED_ERROR = 4;
 
@@ -776,6 +813,21 @@ message ForwardHtlcInterceptResponse {
 
     // The preimage in case the resolve action is Settle.
     bytes preimage = 3;
+
+    // Encrypted failure message in case the resolve action is Fail.
+    //
+    // If failure_message is specified, the failure_code field must be set
+    // to zero.
+    bytes failure_message = 4;
+
+    // Return the specified failure code in case the resolve action is Fail. The
+    // message data fields are populated automatically.
+    //
+    // If a non-zero failure_code is specified, failure_message must not be set.
+    //
+    // For backwards-compatibility reasons, TEMPORARY_CHANNEL_FAILURE is the
+    // default value for this field.
+    lnrpc.Failure.FailureCode failure_code = 5;
 }
 
 enum ResolveHoldForwardAction {
