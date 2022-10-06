@@ -65,6 +65,7 @@ Make sure protoc is properly installed. Here is how to do it on Debian.
 ```bash
 sudo apt install -y protobuf-compiler
 mix escript.install hex protobuf
+asdf reshim
 ```
 
 ```bash
