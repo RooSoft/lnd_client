@@ -11,6 +11,9 @@ defmodule LndClient do
   alias LndClient.Calls.{
     GetForwardingHistory
   }
+  alias Lnrpc.{
+    Invoice,
+  }
 
   @long_timeout 500_000
 
@@ -100,6 +103,19 @@ defmodule LndClient do
 
   def get_payments(%ListPaymentsRequest{} = request \\ %ListPaymentsRequest{}) do
     GenServer.call(__MODULE__, { :list_payments, request })
+  end
+
+  @doc """
+  Takes an %Lnrpc.Invoice and adds that to LND.
+
+  ## Examples
+
+      iex> Lnrpc.Invoice.new(value_msat: 100_000) |> LndClient.add_invoice
+      {:ok, %Lnrpc.AddInvoiceResponse{}}
+
+  """
+  def add_invoice(%Invoice{} = invoice) do
+    GenServer.call(__MODULE__, { :add_invoice, invoice })
   end
 
   def close_channel(%{
@@ -221,6 +237,16 @@ defmodule LndClient do
     result = Lnrpc.Lightning.Stub.open_channel(
       state.connection,
       Lnrpc.OpenChannelRequest.new(request_map),
+      metadata: %{macaroon: state.macaroon}
+    )
+
+    {:reply, result, state}
+  end
+
+  def handle_call({:add_invoice, %Invoice{} = invoice}, _from, state) do
+    result = Lnrpc.Lightning.Stub.add_invoice(
+      state.connection,
+      invoice,
       metadata: %{macaroon: state.macaroon}
     )
 
