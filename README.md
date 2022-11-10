@@ -16,6 +16,19 @@ copy those files from the umbrel to the computer running the app
 - add `/home/umbrel/umbrel/lnd/data/chain/bitcoin/mainnet/readonly.macaroon` to the `~/.lnd`
 - look below for the NODE environment variable that must be set when you run `iex -S mix`
 
+## How to use as a dependency
+
+The package can be installed by adding `lnd_client` 
+to your list of dependencies in `mix.exs`:
+
+```elixir
+def deps do
+  [
+    {:lnd_client, "~> 0.1.7"}
+  ]
+end
+```
+
 ## How to use with IEx
 
 Connect to a LND node directly from IEx
