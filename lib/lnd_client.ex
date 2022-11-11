@@ -13,6 +13,7 @@ defmodule LndClient do
   }
   alias Lnrpc.{
     Invoice,
+    SendRequest,
   }
 
   @long_timeout 500_000
@@ -116,6 +117,19 @@ defmodule LndClient do
   """
   def add_invoice(%Invoice{} = invoice) do
     GenServer.call(__MODULE__, { :add_invoice, invoice })
+  end
+
+  @doc """
+  Takes a %Lnrpc.SendRequest and attempts to pay the invoice
+
+  ## Examples
+
+      iex> Lnrpc.SendRequest.new(payment_request: "lnbcrt500paymentrequest") |> LndClient.send_request_sync
+      { :ok, %Lnrpc.SendResponse{} }
+
+  """
+  def send_payment_sync(%SendRequest{} = send_request) do
+    GenServer.call(__MODULE__, { :send_payment_sync, send_request })
   end
 
   def close_channel(%{
@@ -247,6 +261,16 @@ defmodule LndClient do
     result = Lnrpc.Lightning.Stub.add_invoice(
       state.connection,
       invoice,
+      metadata: %{macaroon: state.macaroon}
+    )
+
+    {:reply, result, state}
+  end
+
+  def handle_call({:send_payment_sync, %SendRequest{} = send_request}, _from, state) do
+    result = Lnrpc.Lightning.Stub.send_payment_sync(
+      state.connection,
+      send_request,
       metadata: %{macaroon: state.macaroon}
     )
 
