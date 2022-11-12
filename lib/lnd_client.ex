@@ -124,7 +124,7 @@ defmodule LndClient do
 
   ## Examples
 
-      iex> Lnrpc.SendRequest.new(payment_request: "lnbcrt500paymentrequest") |> LndClient.send_request_sync
+      iex> Lnrpc.SendRequest.new(payment_request: "lnbcrt500paymentrequest") |> LndClient.send_payment_sync
       { :ok, %Lnrpc.SendResponse{} }
 
   """
