@@ -2,7 +2,10 @@ defmodule LndClient do
   use GenServer
   require Logger
 
-  alias LndClient.Connectivity, as: Connectivity
+  alias LndClient.{
+    Connectivity,
+    ConnConfig,
+  }
   alias LndClient.Models.{
     OpenChannelRequest,
     ListInvoiceRequest,
@@ -18,12 +21,41 @@ defmodule LndClient do
 
   @long_timeout 500_000
 
-  def start() do
-    GenServer.start(__MODULE__, %{} |> init_subscriptions, name: __MODULE__)
+  def start(%ConnConfig{} = conn_config) do
+    GenServer.start(__MODULE__, init_state(conn_config), name: __MODULE__)
   end
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, %{} |> init_subscriptions, name: __MODULE__)
+  @doc """
+  Starts a process which connects to an LND instance.
+
+  ## Examples
+
+      iex> {:ok, pid} = %LndClient.Config.new{
+        node_uri: "127.0.0.1:10001",
+        cert_path: "/path/to/tls.cert",
+        macaroon_path: "/path/to/readonly.macaroon"
+      } |> LndClient.start_link()
+
+  You may pass something like the following to a Supervisor:
+
+  ```ex
+  {
+    LndClient,
+    %LndClient.ConnConfig{
+      node_uri: System.get_env("NODE_URI"),
+      cert_path: System.get_env("CERT_PATH"),
+      macaroon_path: System.get_env("MACAROON_PATH")
+    },
+  },
+  ```
+  """
+  def start_link(%ConnConfig{} = conn_config) do
+    case GenServer.start_link(__MODULE__, init_state(conn_config), name: __MODULE__) do
+      {:ok, pid} = result ->
+        connect
+        result
+      result -> result
+    end
   end
 
   def stop(reason \\ :normal, timeout \\ :infinity) do
@@ -34,12 +66,8 @@ defmodule LndClient do
     {:ok, state }
   end
 
-  def connect node_uri, cert_path, macaroon_path do
-    GenServer.call(__MODULE__, { :connect, %{
-      node_uri: node_uri,
-      cert_path: cert_path,
-      macaroon_path: macaroon_path
-    }}, :infinity)
+  defp connect do
+    GenServer.call(__MODULE__, :connect, :infinity)
   end
 
   def subscribe_uptime(%{pid: pid}) do
@@ -186,8 +214,10 @@ defmodule LndClient do
     })
   end
 
-  def handle_call({ :connect, details }, _from, state) do
-     case Connectivity.connect(details) do
+  def handle_call(:connect, _from, state) do
+    conn_config = Map.get(state, :conn_config)
+
+    case Connectivity.connect(conn_config |> Map.from_struct) do
       { :ok, %{ connection: connection, macaroon: macaroon } } = result ->
           { :reply, result, state
           |> Map.put(:connection, connection)
@@ -566,9 +596,10 @@ defmodule LndClient do
     Connectivity.disconnect(connection)
   end
 
-
-  defp init_subscriptions(state) do
-    state
-    |> Map.put(:subscriptions, %{})
+  defp init_state(conn_config) do
+    %{
+      subscriptions: %{},
+      conn_config: conn_config,
+    }
   end
 end
