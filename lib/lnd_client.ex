@@ -217,7 +217,7 @@ defmodule LndClient do
   def handle_call(:connect, _from, state) do
     conn_config = Map.get(state, :conn_config)
 
-    case Connectivity.connect(conn_config |> Map.from_struct) do
+    case Connectivity.connect(conn_config) do
       { :ok, %{ connection: connection, macaroon: macaroon } } = result ->
           { :reply, result, state
           |> Map.put(:connection, connection)

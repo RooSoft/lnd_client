@@ -1,17 +1,15 @@
 defmodule LndClient.Connectivity do
-  def connect(%{
-    node_uri: node_uri,
-    cert_path: cert_path,
-    macaroon_path: macaroon_path
-  }) do
-    creds = get_creds(cert_path)
+  alias LndClient.ConnConfig
+
+  def connect(%ConnConfig{} = conn_config) do
+    creds = get_creds(conn_config.cert_path)
 
     GRPC.Stub.connect(
-      node_uri,
+      conn_config.node_uri,
       cred: creds,
       adapter_opts: %{http2_opts: %{keepalive: :infinity}}
     )
-    |> manage_new_connection(macaroon_path)
+    |> manage_new_connection(conn_config.macaroon_path)
   end
 
   def disconnect(channel) do
