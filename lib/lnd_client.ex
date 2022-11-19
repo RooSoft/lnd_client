@@ -50,12 +50,7 @@ defmodule LndClient do
   ```
   """
   def start_link(%ConnConfig{} = conn_config) do
-    case GenServer.start_link(__MODULE__, init_state(conn_config), name: __MODULE__) do
-      {:ok, _pid} = result ->
-        connect()
-        result
-      result -> result
-    end
+    GenServer.start_link(__MODULE__, init_state(conn_config), name: __MODULE__)
   end
 
   def stop(reason \\ :normal, timeout \\ :infinity) do
@@ -63,11 +58,7 @@ defmodule LndClient do
   end
 
   def init(state) do
-    {:ok, state }
-  end
-
-  defp connect do
-    GenServer.call(__MODULE__, :connect, :infinity)
+    connect_to_lnd(state)
   end
 
   def subscribe_uptime(%{pid: pid}) do
@@ -212,21 +203,6 @@ defmodule LndClient do
         max_htlc_msat: max_htlc_msat
       }
     })
-  end
-
-  def handle_call(:connect, _from, state) do
-    conn_config = Map.get(state, :conn_config)
-
-    case Connectivity.connect(conn_config) do
-      { :ok, %{ connection: connection, macaroon: macaroon } } = result ->
-          { :reply, result, state
-          |> Map.put(:connection, connection)
-          |> Map.put(:macaroon, macaroon)
-      }
-
-      { :error, _error } = result ->
-        { :reply, result, state }
-    end
   end
 
   def handle_call({ :subscribe_uptime, %{ pid: pid } }, _from, state) do
@@ -601,5 +577,19 @@ defmodule LndClient do
       subscriptions: %{},
       conn_config: conn_config,
     }
+  end
+
+  defp connect_to_lnd(state) do
+    conn_config = Map.get(state, :conn_config)
+
+    case Connectivity.connect(conn_config) do
+      { :ok, %{ connection: connection, macaroon: macaroon } } ->
+        new_state = state
+                    |> Map.put(:connection, connection)
+                    |> Map.put(:macaroon, macaroon)
+        { :ok, new_state }
+      { :error, error } ->
+        { :error, "unable to connect to LND: #{error}" }
+    end
   end
 end
