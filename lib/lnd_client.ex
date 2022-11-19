@@ -51,8 +51,8 @@ defmodule LndClient do
   """
   def start_link(%ConnConfig{} = conn_config) do
     case GenServer.start_link(__MODULE__, init_state(conn_config), name: __MODULE__) do
-      {:ok, pid} = result ->
-        connect
+      {:ok, _pid} = result ->
+        connect()
         result
       result -> result
     end
