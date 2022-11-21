@@ -43,6 +43,7 @@ defmodule LndClient.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:dialyxir, "~> 1.2"},
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
       {:grpc, "~> 0.5.0"},
       {:protobuf, "~> 0.11.0"}

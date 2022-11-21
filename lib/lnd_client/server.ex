@@ -1,6 +1,8 @@
 defmodule LndClient.Server do
   use GenServer
 
+  require Logger
+
   alias LndClient.{
     Connectivity
   }
