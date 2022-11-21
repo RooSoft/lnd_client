@@ -12,21 +12,21 @@ defmodule LndClient.Tools.GraphUpdates do
   def init(_) do
     LndClient.subscribe_channel_graph(%{pid: self()})
 
-    { :ok, nil }
+    {:ok, nil}
   end
 
   def handle_info(%Lnrpc.GraphTopologyUpdate{} = graph_topology_update, state) do
-    now = DateTime.utc_now |> DateTime.to_string
+    now = DateTime.utc_now() |> DateTime.to_string()
 
-    IO.puts "--graph-topology-update----#{now}---"
-    IO.inspect graph_topology_update
+    IO.puts("--graph-topology-update----#{now}---")
+    IO.inspect(graph_topology_update)
 
     {:noreply, state}
   end
 
   def handle_info(event, state) do
-    IO.puts "--------- got an unknown event"
-    IO.inspect event
+    IO.puts("--------- got an unknown event")
+    IO.inspect(event)
 
     {:noreply, state}
   end

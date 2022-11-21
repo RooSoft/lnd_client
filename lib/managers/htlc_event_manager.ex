@@ -12,46 +12,47 @@ defmodule LndClient.Managers.HtlcEventManager do
   end
 
   def init(state) do
-    { :ok, state }
+    {:ok, state}
   end
 
   def monitor(pid) do
-    GenServer.cast(__MODULE__, { :monitor, %{ pid: pid } })
+    GenServer.cast(__MODULE__, {:monitor, %{pid: pid}})
   end
 
   def handle_cast({:monitor, %{pid: pid}}, state) do
-    Logger.info "Will send htlc events to #{inspect pid}"
+    Logger.info("Will send htlc events to #{inspect(pid)}")
 
-    response = Routerrpc.Router.Stub.subscribe_htlc_events(
-      state.connection,
-      Routerrpc.SubscribeHtlcEventsRequest.new(),
-      metadata: %{macaroon: state.macaroon}
-    )
+    response =
+      Routerrpc.Router.Stub.subscribe_htlc_events(
+        state.connection,
+        Routerrpc.SubscribeHtlcEventsRequest.new(),
+        metadata: %{macaroon: state.macaroon}
+      )
 
     case response do
-      { :ok, stream } ->
+      {:ok, stream} ->
         stream
         |> decode_stream(pid)
 
-      { :error, %GRPC.RPCError{status: 2} } ->
-        Logger.warn "Disconnected from htlc events"
+      {:error, %GRPC.RPCError{status: 2}} ->
+        Logger.warn("Disconnected from htlc events")
 
-      { :error, error } ->
-        Logger.error "Unknown htlc GRPC error"
-        IO.inspect error
+      {:error, error} ->
+        Logger.error("Unknown htlc GRPC error")
+        IO.inspect(error)
     end
 
     {:noreply, state}
   end
 
-  defp decode_stream stream, pid do
+  defp decode_stream(stream, pid) do
     stream
     |> Enum.each(fn
       {:ok, event} ->
         send(pid, event)
 
       {:error, _details} ->
-        IO.puts "Error while decoding stream"
+        IO.puts("Error while decoding stream")
     end)
   end
 end

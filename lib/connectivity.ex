@@ -16,15 +16,14 @@ defmodule LndClient.Connectivity do
     GRPC.Stub.disconnect(channel)
   end
 
-
-  defp manage_new_connection { :ok, connection }, macaroon_path do
+  defp manage_new_connection({:ok, connection}, macaroon_path) do
     macaroon = get_macaroon(macaroon_path)
 
-    { :ok, %{ connection: connection, macaroon: macaroon } }
+    {:ok, %{connection: connection, macaroon: macaroon}}
   end
 
-  defp manage_new_connection { :error, error }, _ do
-    { :error, error }
+  defp manage_new_connection({:error, error}, _) do
+    {:error, error}
   end
 
   defp get_creds(cert_path) do

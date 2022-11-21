@@ -8,12 +8,12 @@ defmodule LndClient.Calls.GetForwardingHistory do
     |> convert_result
   end
 
-  defp convert_params %{
-    start_time: start_time,
-    end_time: end_time,
-    max_events: max_events,
-    offset: offset
-  } do
+  defp convert_params(%{
+         start_time: start_time,
+         end_time: end_time,
+         max_events: max_events,
+         offset: offset
+       }) do
     %{
       start_time: Convert.Date.datetime_to_unix(start_time),
       end_time: Convert.Date.datetime_to_unix(end_time),
@@ -22,7 +22,7 @@ defmodule LndClient.Calls.GetForwardingHistory do
     }
   end
 
-  defp call_node params, connection, macaroon do
+  defp call_node(params, connection, macaroon) do
     Lnrpc.Lightning.Stub.forwarding_history(
       connection,
       Lnrpc.ForwardingHistoryRequest.new(params),
@@ -30,22 +30,22 @@ defmodule LndClient.Calls.GetForwardingHistory do
     )
   end
 
-  defp convert_result { :ok, forwarding_history } do
+  defp convert_result({:ok, forwarding_history}) do
     forwarding_history.forwarding_events
     |> convert_forwarding_events
     |> create_return_value(forwarding_history)
   end
 
-  defp convert_result {:error, _ } = result do
+  defp convert_result({:error, _} = result) do
     result
   end
 
-  defp convert_forwarding_events forwarding_events do
+  defp convert_forwarding_events(forwarding_events) do
     forwarding_events
     |> Enum.map(&convert_forwarding_event/1)
   end
 
-  defp create_return_value forwarding_events, forwarding_history do
+  defp create_return_value(forwarding_events, forwarding_history) do
     {
       :ok,
       forwarding_history
@@ -54,7 +54,7 @@ defmodule LndClient.Calls.GetForwardingHistory do
     }
   end
 
-  defp convert_forwarding_event forwarding_event do
+  defp convert_forwarding_event(forwarding_event) do
     forwarding_event
     |> Map.from_struct()
     |> Map.put(:time, Convert.Date.unix_to_datetime(forwarding_event.timestamp))

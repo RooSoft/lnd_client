@@ -12,21 +12,21 @@ defmodule LndClient.Tools.HtlcUpdates do
   def init(_) do
     LndClient.subscribe_htlc_events(%{pid: self()})
 
-    { :ok, nil }
+    {:ok, nil}
   end
 
   def handle_info(%Routerrpc.HtlcEvent{} = htlc, state) do
-    now = DateTime.utc_now |> DateTime.to_string
+    now = DateTime.utc_now() |> DateTime.to_string()
 
-    IO.puts "---#{now}---"
-    IO.inspect htlc
+    IO.puts("---#{now}---")
+    IO.inspect(htlc)
 
     {:noreply, state}
   end
 
   def handle_info(event, state) do
-    IO.puts "--------- got an unknown event"
-    IO.inspect event
+    IO.puts("--------- got an unknown event")
+    IO.inspect(event)
 
     {:noreply, state}
   end
