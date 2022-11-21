@@ -2,17 +2,15 @@ defmodule LndClient do
   require Logger
 
   alias LndClient.{
-    Connectivity,
     ConnConfig,
   }
+
   alias LndClient.Models.{
     OpenChannelRequest,
     ListInvoiceRequest,
     ListPaymentsRequest
   }
-  alias LndClient.Calls.{
-    GetForwardingHistory
-  }
+
   alias Lnrpc.{
     Invoice,
     SendRequest,
