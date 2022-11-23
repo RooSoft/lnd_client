@@ -196,6 +196,17 @@ defmodule LndClient.Server do
     {:reply, result, state}
   end
 
+  def handle_call({:decode_payment_request, payment_request}, _from, state) do
+    result =
+      Lnrpc.Lightning.Stub.decode_pay_req(
+        state.connection,
+        Lnrpc.PayReqString.new(pay_req: payment_request),
+        metadata: %{macaroon: state.macaroon}
+      )
+
+    {:reply, result, state}
+  end
+
   def handle_call({:subscribe_htlc_events = subscription_type, %{pid: pid}}, _from, state) do
     {:reply, nil,
      state

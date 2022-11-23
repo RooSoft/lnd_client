@@ -182,6 +182,56 @@ defmodule LndClient do
     GenServer.call(@server, {:get_forwarding_history, parameter_map})
   end
 
+  @doc """
+  Takes a payment request string and returns decoded version (Lnrpc.PayReq)
+
+  ## Examples
+
+      iex> LndClient.decode_payment_request("lnbcrt500u1p3hmq4gpp5sa2s5ue4f750pxrr9s6zdrydyqf8pz502678czpqj3s0kj36m58qdqqcqzpgxqyz5vqsp52ecznqzf65tjtw2h2ld8kqut92p5ajuf47y5y926z5d2w3w0s0hq9qyyssqss0qrg2xu8yeqvrs9vykw4m56739vlqxuztzr3wrdpm350n5k8djmkrcascl33vt74m5k2fxcam6emqa0a76navtyaj9myp9ry5dshgp6mzn02")
+      {:ok,
+        %Lnrpc.PayReq{
+         destination: "02355b24c2dcf043eef225af8a2192d8e76a03e836a559bf81f30a711591ec560a",
+         payment_hash: "87550a73354fa8f098632c34268c8d2012708a8f56bc7c08209460fb4a3add0e",
+         num_satoshis: 50000,
+         timestamp: 1669169832,
+         expiry: 86400,
+         description: "",
+         description_hash: "",
+         fallback_addr: "",
+         cltv_expiry: 40,
+         route_hints: [],
+         payment_addr: <<86, 112, 41, 128, 73, 213, 23, 37, 185, 87, 87, 218, 123, 3,
+           139, 42, 131, 78, 203, 137, 175, 137, 66, 21, 90, 21, 26, 167, 69, 207,
+           131, 238>>,
+         num_msat: 50000000,
+         features: %{
+           9 => %Lnrpc.Feature{
+             name: "tlv-onion",
+             is_required: false,
+             is_known: true,
+             __unknown_fields__: []
+           },
+           14 => %Lnrpc.Feature{
+             name: "payment-addr",
+             is_required: true,
+             is_known: true,
+             __unknown_fields__: []
+           },
+           17 => %Lnrpc.Feature{
+             name: "multi-path-payments",
+             is_required: false,
+             is_known: true,
+             __unknown_fields__: []
+           }
+         },
+         __unknown_fields__: []
+        }}
+
+  """
+  def decode_payment_request(payment_request) do
+    GenServer.call(@server, {:decode_payment_request, payment_request})
+  end
+
   def update_channel_policy(%{
         txid: txid,
         output_index: output_index,
