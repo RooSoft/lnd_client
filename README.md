@@ -2,6 +2,21 @@
 
 Connects to the [Lightning Network Daemon](https://github.com/lightningnetwork/lnd)'s [gRPC API](https://api.lightning.community/#lnd-grpc-api-reference) known as LND
 
+## Donations
+
+This library is being built in the wild according to these principles
+
+- Free to use
+- Developer friendly
+- Modular
+
+Arguably, the most important part is that it is `unbiased`.
+
+If you want to keep it that way, and want to promote its active development, please send donations
+here: `bc1qwpj2nyunrvjkj7z0unk4gg3ht26h2ysh9dqtez`
+
+Thank you!
+
 ## Prerequisites for umbrel users
 
 with a fresh clone of this project, run 
