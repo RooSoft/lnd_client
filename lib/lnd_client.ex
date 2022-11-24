@@ -23,6 +23,13 @@ defmodule LndClient do
     GenServer.start(@server, init_state(conn_config), name: @server)
   end
 
+  def child_spec(arg) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [arg]}
+    }
+  end
+
   @doc """
   Starts a process which connects to an LND instance.
 
