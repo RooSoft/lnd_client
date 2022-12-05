@@ -13,20 +13,24 @@ defmodule LndClient do
 
   alias Lnrpc.{
     Invoice,
-    SendRequest
+    SendRequest,
+    NodeInfoRequest
   }
 
   @long_timeout 500_000
   @server LndClient.Server
 
-  def start(%ConnConfig{} = conn_config) do
-    GenServer.start(@server, init_state(conn_config), name: @server)
+  def start(%ConnConfig{} = conn_config, name \\ @server) do
+    GenServer.start(@server, init_state(conn_config), name: name)
   end
 
-  def child_spec(arg) do
+  def child_spec(opts) do
+    conn_config = opts[:conn_config]
+    name = opts[:name] || @server
+
     %{
-      id: __MODULE__,
-      start: {__MODULE__, :start_link, [arg]}
+      id: name,
+      start: {__MODULE__, :start_link, [conn_config, name]}
     }
   end
 
@@ -54,8 +58,8 @@ defmodule LndClient do
   },
   ```
   """
-  def start_link(%ConnConfig{} = conn_config) do
-    GenServer.start_link(@server, init_state(conn_config), name: @server)
+  def start_link(%ConnConfig{} = conn_config, name \\ @server) do
+    GenServer.start_link(@server, init_state(conn_config), name: name)
   end
 
   def stop(reason \\ :normal, timeout \\ :infinity) do
@@ -66,67 +70,64 @@ defmodule LndClient do
     GenServer.call(@server, {:subscribe_uptime, %{pid: pid}})
   end
 
-  def get_info() do
-    GenServer.call(@server, :get_info)
+  def get_info(name \\ @server) do
+    GenServer.call(name, :get_info)
   end
 
-  def get_fee_report() do
-    GenServer.call(@server, :get_fee_report)
+  def get_fee_report(name \\ @server) do
+    GenServer.call(name, :get_fee_report)
   end
 
-  def get_network_info() do
-    GenServer.call(@server, :get_network_info)
+  def get_network_info(name \\ @server) do
+    GenServer.call(name, :get_network_info)
   end
 
-  def describe_graph() do
-    GenServer.call(@server, :describe_graph, @long_timeout)
+  def describe_graph(name \\ @server) do
+    GenServer.call(name, :describe_graph, @long_timeout)
   end
 
-  def subscribe_htlc_events(%{pid: pid}) do
-    GenServer.call(@server, {:subscribe_htlc_events, %{pid: pid}})
+  def subscribe_htlc_events(%{pid: pid}, name \\ @server) do
+    GenServer.call(name, {:subscribe_htlc_events, %{pid: pid}})
   end
 
-  def subscribe_channel_graph(pid) do
-    GenServer.call(@server, {:subscribe_channel_graph, %{pid: pid}})
+  def subscribe_channel_graph(pid, name \\ @server) do
+    GenServer.call(name, {:subscribe_channel_graph, %{pid: pid}})
   end
 
-  def subscribe_channel_event(%{pid: pid}) do
-    GenServer.call(@server, {:subscribe_channel_event, %{pid: pid}})
+  def subscribe_channel_event(%{pid: pid}, name \\ @server) do
+    GenServer.call(name, {:subscribe_channel_event, %{pid: pid}})
   end
 
-  def subscribe_invoices(%{pid: pid}) do
-    GenServer.call(@server, {:subscribe_invoices, %{pid: pid}})
+  def subscribe_invoices(%{pid: pid}, name \\ @server) do
+    GenServer.call(name, {:subscribe_invoices, %{pid: pid}})
   end
 
-  def get_node_info(pubkey, include_channels \\ false) do
-    GenServer.call(
-      @server,
-      {:get_node_info, %{pubkey: pubkey, include_channels: include_channels}}
-    )
+  def get_node_info(%NodeInfoRequest{} = node_info_request, name \\ @server) do
+    GenServer.call(name, {:get_node_info, node_info_request})
   end
 
-  def get_channels(active_only \\ false) do
-    GenServer.call(@server, {:get_channels, %{active_only: active_only}})
+  def get_channels(active_only \\ false, name \\ @server) do
+    GenServer.call(name, {:get_channels, %{active_only: active_only}})
   end
 
-  def get_closed_channels() do
-    GenServer.call(@server, {:get_closed_channels, %{}})
+  def get_closed_channels(name \\ @server) do
+    GenServer.call(name, {:get_closed_channels, %{}})
   end
 
-  def get_channel(id) do
-    GenServer.call(@server, {:get_channel, %{id: id}})
+  def get_channel(id, name \\ @server) do
+    GenServer.call(name, {:get_channel, %{id: id}})
   end
 
-  def open_channel(%OpenChannelRequest{} = request) do
-    GenServer.call(@server, {:open_channel, request})
+  def open_channel(%OpenChannelRequest{} = request, name \\ @server) do
+    GenServer.call(name, {:open_channel, request})
   end
 
-  def get_invoices(%ListInvoiceRequest{} = request \\ %ListInvoiceRequest{}) do
-    GenServer.call(@server, {:list_invoices, request})
+  def get_invoices(%ListInvoiceRequest{} = request \\ %ListInvoiceRequest{}, name \\ @server) do
+    GenServer.call(name, {:list_invoices, request})
   end
 
-  def get_payments(%ListPaymentsRequest{} = request \\ %ListPaymentsRequest{}) do
-    GenServer.call(@server, {:list_payments, request})
+  def get_payments(%ListPaymentsRequest{} = request \\ %ListPaymentsRequest{}, name \\ @server) do
+    GenServer.call(name, {:list_payments, request})
   end
 
   @doc """
@@ -138,8 +139,8 @@ defmodule LndClient do
       {:ok, %Lnrpc.AddInvoiceResponse{}}
 
   """
-  def add_invoice(%Invoice{} = invoice) do
-    GenServer.call(@server, {:add_invoice, invoice})
+  def add_invoice(%Invoice{} = invoice, name \\ @server) do
+    GenServer.call(name, {:add_invoice, invoice})
   end
 
   @doc """
@@ -151,18 +152,21 @@ defmodule LndClient do
       { :ok, %Lnrpc.SendResponse{} }
 
   """
-  def send_payment_sync(%SendRequest{} = send_request) do
-    GenServer.call(@server, {:send_payment_sync, send_request})
+  def send_payment_sync(%SendRequest{} = send_request, name \\ @server) do
+    GenServer.call(name, {:send_payment_sync, send_request})
   end
 
-  def close_channel(%{
-        txid: txid,
-        output_index: output_index,
-        force: force,
-        target_conf: target_conf,
-        sat_per_vbyte: sat_per_vbyte
-      }) do
-    GenServer.call(@server, {
+  def close_channel(
+        %{
+          txid: txid,
+          output_index: output_index,
+          force: force,
+          target_conf: target_conf,
+          sat_per_vbyte: sat_per_vbyte
+        },
+        name \\ @server
+      ) do
+    GenServer.call(name, {
       :close_channel,
       %{
         txid: txid,
@@ -174,19 +178,19 @@ defmodule LndClient do
     })
   end
 
-  def get_node_balance() do
-    GenServer.call(@server, :get_node_balance)
+  def get_node_balance(name \\ @server) do
+    GenServer.call(name, :get_node_balance)
   end
 
-  def get_wallet_balance() do
-    GenServer.call(@server, :get_wallet_balance)
+  def get_wallet_balance(name \\ @server) do
+    GenServer.call(name, :get_wallet_balance)
   end
 
   @forwarding_history_defaults %{max_events: 100, offset: 0, start_time: nil, end_time: nil}
-  def get_forwarding_history(parameters \\ []) do
+  def get_forwarding_history(parameters \\ [], name \\ @server) do
     parameter_map = Enum.into(parameters, @forwarding_history_defaults)
 
-    GenServer.call(@server, {:get_forwarding_history, parameter_map})
+    GenServer.call(name, {:get_forwarding_history, parameter_map})
   end
 
   @doc """
@@ -235,19 +239,22 @@ defmodule LndClient do
         }}
 
   """
-  def decode_payment_request(payment_request) do
-    GenServer.call(@server, {:decode_payment_request, payment_request})
+  def decode_payment_request(payment_request, name \\ @server) do
+    GenServer.call(name, {:decode_payment_request, payment_request})
   end
 
-  def update_channel_policy(%{
-        txid: txid,
-        output_index: output_index,
-        base_fee_msat: base_fee_msat,
-        fee_rate: fee_rate,
-        time_lock_delta: time_lock_delta,
-        max_htlc_msat: max_htlc_msat
-      }) do
-    GenServer.call(@server, {
+  def update_channel_policy(
+        %{
+          txid: txid,
+          output_index: output_index,
+          base_fee_msat: base_fee_msat,
+          fee_rate: fee_rate,
+          time_lock_delta: time_lock_delta,
+          max_htlc_msat: max_htlc_msat
+        },
+        name \\ @server
+      ) do
+    GenServer.call(name, {
       :update_channel_policy,
       %{
         txid: txid,

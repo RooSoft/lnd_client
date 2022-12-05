@@ -25,7 +25,8 @@ defmodule LndClient.Tools.Channels do
 
   defp print_small_channels(channel) do
     %Lnrpc.NodeInfo{node: %Lnrpc.LightningNode{alias: node_alias}} =
-      LndClient.get_node_info(channel.remote_pubkey)
+      %Lnrpc.NodeInfoRequest{pub_key: channel.remote_pubkey}
+      |> LndClient.get_node_info()
 
     IO.puts("#{node_alias} has only a #{channel.capacity} sat capacity")
   end
@@ -38,7 +39,8 @@ defmodule LndClient.Tools.Channels do
 
   defp print_large_channels(channel) do
     %Lnrpc.NodeInfo{node: %Lnrpc.LightningNode{alias: node_alias}} =
-      LndClient.get_node_info(channel.remote_pubkey)
+      %Lnrpc.NodeInfoRequest{pub_key: channel.remote_pubkey}
+      |> LndClient.get_node_info()
 
     IO.puts("#{node_alias} has a #{channel.capacity} sat capacity")
   end
@@ -55,7 +57,8 @@ defmodule LndClient.Tools.Channels do
 
   defp print_names_and_capacity(channel) do
     %Lnrpc.NodeInfo{node: %Lnrpc.LightningNode{alias: node_alias}} =
-      LndClient.get_node_info(channel.remote_pubkey)
+      %Lnrpc.NodeInfoRequest{pub_key: channel.remote_pubkey}
+      |> LndClient.get_node_info()
 
     IO.puts(
       "#{node_alias} Capacity:#{channel.capacity}, LocalBalance:#{channel.local_balance}, RemoteBalance:#{channel.remote_balance}"
@@ -73,7 +76,8 @@ defmodule LndClient.Tools.Channels do
 
   defp print_stagnant_channel(channel) do
     %Lnrpc.NodeInfo{node: %Lnrpc.LightningNode{alias: node_alias}} =
-      LndClient.get_node_info(channel.remote_pubkey)
+      %Lnrpc.NodeInfoRequest{pub_key: channel.remote_pubkey}
+      |> LndClient.get_node_info()
 
     IO.puts("#{node_alias} with #{channel.local_balance} sats is stagnant")
   end
@@ -87,7 +91,8 @@ defmodule LndClient.Tools.Channels do
 
   defp print_inactive_channels(channel) do
     %Lnrpc.NodeInfo{node: %Lnrpc.LightningNode{alias: node_alias}} =
-      LndClient.get_node_info(channel.remote_pubkey)
+      %Lnrpc.NodeInfoRequest{pub_key: channel.remote_pubkey}
+      |> LndClient.get_node_info()
 
     IO.puts("#{node_alias} with #{channel.local_balance} sats is inactive")
   end
@@ -104,7 +109,8 @@ defmodule LndClient.Tools.Channels do
 
   defp print_poor_channels(channel) do
     %Lnrpc.NodeInfo{node: %Lnrpc.LightningNode{alias: node_alias}} =
-      LndClient.get_node_info(channel.remote_pubkey)
+      %Lnrpc.NodeInfoRequest{pub_key: channel.remote_pubkey}
+      |> LndClient.get_node_info()
 
     IO.puts("#{node_alias} is only #{channel.capacity} sats and is stagnant")
   end

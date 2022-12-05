@@ -19,7 +19,7 @@ Thank you!
 
 ## Prerequisites for umbrel users
 
-with a fresh clone of this project, run 
+with a fresh clone of this project, run
 
 ```bash
 mix deps.get
@@ -33,7 +33,7 @@ copy those files from the umbrel to the computer running the app
 
 ## How to use as a dependency
 
-The package can be installed by adding `lnd_client` 
+The package can be installed by adding `lnd_client`
 to your list of dependencies in `mix.exs`:
 
 ```elixir
@@ -44,41 +44,116 @@ def deps do
 end
 ```
 
-## How to use with IEx
-
-Connect to a LND node directly from IEx
-
-Execute this in the root folder if your LND listens on the `localhost` port `10009`
-
-Otherwise, replace NODE_IP and NODE_LND_PORT to fit your environment
-
-```bash
-NODE_IP=localhost
-NODE_LND_PORT=10009
-NODE=$NODE_LND_PORT:$NODE_LND_PORT iex -S mix
-```
-
-Then, it is possible to get the LND's basic informations by typing
-
-```elixir
-LndClient.get_info
-```
+## Usage
+This may be used with another Elixir application or on its own using IEx.
 
 ## How to use in an app
 
 ### Add this dependency in mix.exs
 
 ```elixir
-{:lnd_client, git: "https://github.com/RooSoft/lnd_client.git", tag: "0.1"}
+{:lnd_client, "~> 0.1"}
+```
+
+### LND config
+
+Whenever you start a LndClient GenServer, you need to specify the credential config.
+
+```elixir
+conn_config = %LndClient.ConnConfig{
+  node_uri: System.get_env("BOB_NODE"),
+  cert_path: System.get_env("BOB_CERT"),
+  macaroon_path: System.get_env("BOB_MACAROON")
+}
 ```
 
 ### Start the server, get node info and then stop the server
 
 ```elixir
-LndClient.start_link(nil)
+LndClient.start_link(conn_config)
 LndClient.get_info
 LndClient.stop
 ```
+
+### Multiple LNDs
+You can start multiple GenServers by passing in the name:
+
+```elixir
+LndClient.start_link(conn_config, BobLndClient)
+LndClient.get_info(BobLndClient)
+```
+
+## How to use it with a Supervisor
+
+Add this to the list of children:
+
+```elixir
+[
+  {
+    LndClient,
+    conn_config: %LndClient.ConnConfig{
+      node_uri: System.get_env("ALICE_NODE"),
+      cert_path: System.get_env("ALICE_CERT"),
+      macaroon_path: System.get_env("ALICE_MACAROON")
+    }
+  }
+]
+```
+
+If you're going to make more than one connection to an LND, just pass in the name.
+
+```elixir
+[
+  {
+    LndClient,
+    conn_config: %LndClient.ConnConfig{
+      node_uri: System.get_env("ALICE_NODE"),
+      cert_path: System.get_env("ALICE_CERT"),
+      macaroon_path: System.get_env("ALICE_MACAROON")
+    },
+    name: AliceLndClient
+  },
+  {
+    LndClient,
+    conn_config: %LndClient.ConnConfig{
+      node_uri: System.get_env("BOB_NODE"),
+      cert_path: System.get_env("BOB_CERT"),
+      macaroon_path: System.get_env("BOB_MACAROON")
+    },
+    name: BobLndClient
+  }
+]
+```
+
+Then, somewhere else in your app:
+
+```elixir
+LndClient.add_invoice(%Lnrpc.Invoice{value_msat: 150_000}, BobLndClient)
+```
+
+## How to use with IEx
+
+In the root of the folder, ensure that the following env vars in the example below exist:
+
+```bash
+NODE=localhost:100009
+CERT=~/path/to/tls.cert
+MACAROON=~/path/to/macaroon
+```
+
+Then `iex -S mix`
+
+See if the connection was made:
+
+```elixir
+LndClient.get_info
+```
+
+You didn't need to call `start_link` because `.iex.exs` calls that for you.
+
+## Tests
+
+Run `mix test`
 
 ## Library Maintenance
 
