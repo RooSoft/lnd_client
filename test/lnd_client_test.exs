@@ -4,82 +4,101 @@ defmodule LndClientTest do
   alias LndClient.ConnConfig
   alias Lnrpc.{Invoice, SendRequest}
 
-  test "get_info returns the info of the given server" do
-    LndClient.start_link(
-      %ConnConfig{
-        node_uri: System.get_env("BOB_NODE"),
-        cert_path: System.get_env("BOB_CERT"),
-        macaroon_path: System.get_env("BOB_MACAROON")
-      },
-      BobLndClient
+  import Mox
+
+  setup :set_mox_from_context
+  setup :verify_on_exit!
+
+  setup do
+    LndClient.MockConnectivity
+    |> expect(
+      :connect,
+      fn %ConnConfig{node_uri: "node_uri", cert_path: "cert_path", macaroon_path: "macaroon_path"} ->
+        {:ok,
+         %{
+           conn_config: %ConnConfig{
+             node_uri: "node_uri",
+             cert_path: "cert_path",
+             macaroon_path: "macaroon_path"
+           },
+           channel: %GRPC.Channel{},
+           macaroon: "fakedmac"
+         }}
+      end
     )
 
-    {:ok, get_info_response} = LndClient.get_info(BobLndClient)
+    conn_config = %ConnConfig{
+      node_uri: "node_uri",
+      cert_path: "cert_path",
+      macaroon_path: "macaroon_path"
+    }
 
-    assert get_info_response.alias == "bob"
+    LndClient.start_link(conn_config)
+
+    :ok
+  end
+
+  test "get_info returns the info of the given server" do
+    LndClient.MockLightningServiceHandler
+    |> expect(
+      :get_info,
+      fn _channel, macaroon ->
+        assert macaroon == "fakedmac"
+        {:ok, %Lnrpc.GetInfoResponse{identity_pubkey: "abc"}}
+      end
+    )
+
+    {:ok, get_info_response} = LndClient.get_info()
+
+    assert get_info_response.identity_pubkey == "abc"
   end
 
   test "child_spec is defined make it cleaner starting from a Supervisor" do
+    conn_config = %LndClient.ConnConfig{}
+
     expected_result = %{
-      id: LndClient,
-      start: {LndClient, :start_link, ["1"]}
+      id: :alice_lnd,
+      start: {LndClient, :start_link, [conn_config, :alice_lnd]}
     }
 
-    assert LndClient.child_spec("1") == expected_result
+    assert LndClient.child_spec(%{conn_config: conn_config, name: :alice_lnd}) == expected_result
   end
 
   test "add_invoice creates an invoice" do
-    # Create an invoice that can be paid
-    LndClient.start_link(
-      %ConnConfig{
-        node_uri: System.get_env("ALICE_NODE"),
-        cert_path: System.get_env("ALICE_CERT"),
-        macaroon_path: System.get_env("ALICE_MACAROON")
-      },
-      AliceLndClient
+    LndClient.MockLightningServiceHandler
+    |> expect(
+      :add_invoice,
+      fn request, _channel, macaroon ->
+        assert request.value_msat == 100_000
+        assert macaroon == "fakedmac"
+
+        {:ok, %Lnrpc.AddInvoiceResponse{payment_request: "pr"}}
+      end
     )
 
     {:ok, add_invoice_response} =
-      LndClient.add_invoice(
-        %Invoice{value_msat: 100_000},
-        AliceLndClient
-      )
+      %Invoice{value_msat: 100_000}
+      |> LndClient.add_invoice()
 
-    assert add_invoice_response.payment_request != nil
+    assert add_invoice_response.payment_request == "pr"
   end
 
   test "send_payment_sync sends a payment" do
-    # Create an invoice that can be paid
-    LndClient.start_link(
-      %ConnConfig{
-        node_uri: System.get_env("ALICE_NODE"),
-        cert_path: System.get_env("ALICE_CERT"),
-        macaroon_path: System.get_env("ALICE_MACAROON")
-      },
-      AliceLndClient
-    )
+    LndClient.MockLightningServiceHandler
+    |> expect(
+      :send_payment_sync,
+      fn request, _channel, macaroon ->
+        assert request.payment_request == "pr"
+        assert macaroon == "fakedmac"
 
-    {:ok, add_invoice_response} =
-      LndClient.add_invoice(
-        %Invoice{value_msat: 100_000},
-        AliceLndClient
-      )
-
-    LndClient.start_link(
-      %ConnConfig{
-        node_uri: System.get_env("BOB_NODE"),
-        cert_path: System.get_env("BOB_CERT"),
-        macaroon_path: System.get_env("BOB_MACAROON")
-      },
-      BobLndClient
+        {:ok, %Lnrpc.SendResponse{payment_hash: "ph"}}
+      end
     )
 
     {:ok, send_response} =
-      LndClient.send_payment_sync(
-        %SendRequest{payment_request: add_invoice_response.payment_request},
-        BobLndClient
-      )
+      %SendRequest{payment_request: "pr"}
+      |> LndClient.send_payment_sync()
 
-    assert send_response.payment_error == ""
+    assert send_response.payment_hash == "ph"
   end
 end
