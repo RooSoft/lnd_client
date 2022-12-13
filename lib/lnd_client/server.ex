@@ -19,7 +19,14 @@ defmodule LndClient.Server do
   }
 
   def init(state) do
-    connect_to_lnd(state)
+    GenServer.cast(self(), :connect_to_lnd)
+
+    {:ok, state}
+  end
+
+  def handle_cast(:connect_to_lnd, state) do
+    {:ok, new_state} = connect_to_lnd(state)
+    {:noreply, new_state}
   end
 
   def handle_call({:subscribe_uptime, %{pid: pid}}, _from, state) do
