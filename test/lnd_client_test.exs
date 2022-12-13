@@ -38,7 +38,7 @@ defmodule LndClientTest do
         macaroon_path: "macaroon_path"
       }
 
-      LndClient.start_link(conn_config)
+      LndClient.start_link(%{conn_config: conn_config})
     end
 
     :ok
@@ -65,7 +65,8 @@ defmodule LndClientTest do
 
     expected_result = %{
       id: :alice_lnd,
-      start: {LndClient, :start_link, [conn_config, :alice_lnd]}
+      start:
+        {LndClient, :start_link, [%{conn_config: conn_config, name: :alice_lnd, subscribers: []}]}
     }
 
     assert LndClient.child_spec(%{conn_config: conn_config, name: :alice_lnd}) == expected_result

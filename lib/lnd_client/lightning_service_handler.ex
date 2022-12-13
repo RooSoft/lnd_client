@@ -30,4 +30,14 @@ defmodule LndClient.LightningServiceHandler do
       metadata: %{macaroon: macaroon}
     )
   end
+
+  @callback subscribe_invoices(Lnrpc.InvoiceSubscription.t(), GRPC.Channel.t(), String.t()) ::
+              {:ok, {Lnrpc.Invoice.t(), true}}
+  def subscribe_invoices(request \\ Lnrpc.InvoiceSubscription.new(), channel, macaroon) do
+    Lnrpc.Lightning.Stub.subscribe_invoices(
+      channel,
+      request,
+      metadata: %{macaroon: macaroon}
+    )
+  end
 end

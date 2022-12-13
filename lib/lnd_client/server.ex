@@ -33,6 +33,10 @@ defmodule LndClient.Server do
     {:noreply, new_state}
   end
 
+  def handle_call(:get_state, _from, state) do
+    {:reply, state, state}
+  end
+
   def handle_call({:subscribe_uptime, %{pid: pid}}, _from, state) do
     {:reply, nil,
      state
@@ -243,13 +247,6 @@ defmodule LndClient.Server do
      |> record_node_event_subscription(subscription_type, pid)}
   end
 
-  def handle_call({:subscribe_invoices = subscription_type, %{pid: pid}}, _from, state) do
-    {:reply, nil,
-     state
-     |> subscribe_to_node_event(pid, subscription_type)
-     |> record_node_event_subscription(subscription_type, pid)}
-  end
-
   def handle_call({:get_node_info, %NodeInfoRequest{} = request}, _from, state) do
     result =
       Lnrpc.Lightning.Stub.get_node_info(
@@ -351,7 +348,7 @@ defmodule LndClient.Server do
   end
 
   def handle_info({:gun_up, _pid, _protocol}, state) do
-    Logger.warning("LND node is back online, reinitializing LndClient")
+    Logger.warning("#{inspect(__MODULE__)}: LND node is back online, reinitializing LndClient")
 
     if state |> Map.has_key?(:uptime_subscription) do
       send(state.uptime_subscription, :up)
@@ -420,16 +417,6 @@ defmodule LndClient.Server do
 
     pid
     |> LndClient.Managers.ChannelGraphManager.monitor()
-
-    state
-  end
-
-  def subscribe_to_node_event(state, pid, :subscribe_invoices) do
-    state
-    |> LndClient.Managers.InvoiceEventManager.start_link()
-
-    pid
-    |> LndClient.Managers.InvoiceEventManager.monitor()
 
     state
   end

@@ -22,22 +22,61 @@ defmodule LndClient do
   @long_timeout 500_000
   @server LndClient.Server
 
-  def start(%ConnConfig{} = conn_config, name \\ @server) do
-    GenServer.start(@server, init_state(conn_config), name: name)
+  def start(%{conn_config: conn_config} = opts) do
+    name = opts[:name] || @server
+    subscribers = opts[:subscribers] || []
+
+    GenServer.start(@server, init_state(conn_config, subscribers), name: name)
   end
 
-  def child_spec(opts) do
-    conn_config = opts[:conn_config]
-    name = opts[:name] || @server
+  def child_spec(%{conn_config: conn_config, name: name} = opts) do
+    subscribers = opts[:subscribers] || []
 
     %{
       id: name,
-      start: {__MODULE__, :start_link, [conn_config, name]}
+      start:
+        {__MODULE__, :start_link,
+         [%{conn_config: conn_config, name: name, subscribers: subscribers}]}
     }
   end
 
   @doc """
+  Convenience function to generate a list of child specs, including any custom subscriptions in your app. This allows you to easily let your Supervisor run all other GenServers directly.
+
+      LndClient.child_specs(
+        conn_config: %LndClient.ConnConfig{
+          node_uri: System.get_env("ALICE_NODE"),
+          cert_path: System.get_env("ALICE_CERT"),
+          macaroon_path: System.get_env("ALICE_MACAROON")
+        },
+        name: :lnd_client,
+        subscribers: [MyApp.LNDInvoiceSubscriber]
+      )
+
+  This returns a list of child_specs that can be added to the list of children to start by your supervisor. It will contain at least one: `LndClient`'s child spec, and it will another per item in `subscribers`.
+  """
+  def child_specs(%{conn_config: conn_config, name: name} = opts) do
+    subscribers = opts[:subscribers] || []
+
+    [child_spec(opts)] ++ module_child_specs(subscribers, name)
+  end
+
+  defp module_child_spec(module, name) do
+    %{
+      id: module,
+      start: {module, :start_link, [%{lnd_server_name: name}]}
+    }
+  end
+
+  defp module_child_specs(modules, name) do
+    modules
+    |> Enum.map(fn module -> module_child_spec(module, name) end)
+  end
+
+  @doc """
   Starts a process which connects to an LND instance.
+
+  Most of the time, unless you're customizing how you're booting up LndClient and its GenServers (if any), then you will not use this directly, but rather you'll be using `child_specs/1`
 
   ## Examples
 
@@ -52,7 +91,7 @@ defmodule LndClient do
   ```ex
   {
     LndClient,
-    %LndClient.ConnConfig{
+    conn_config: %LndClient.ConnConfig{
       node_uri: System.get_env("NODE_URI"),
       cert_path: System.get_env("CERT_PATH"),
       macaroon_path: System.get_env("MACAROON_PATH")
@@ -60,8 +99,15 @@ defmodule LndClient do
   },
   ```
   """
-  def start_link(%ConnConfig{} = conn_config, name \\ @server) do
-    GenServer.start_link(@server, init_state(conn_config), name: name)
+  def start_link(%{conn_config: conn_config} = opts) do
+    name = opts[:name] || @server
+    subscribers = opts[:subscribers] || []
+
+    GenServer.start_link(@server, init_state(conn_config, subscribers), name: name)
+  end
+
+  def get_state(name \\ @server) do
+    GenServer.call(name, :get_state)
   end
 
   def stop(reason \\ :normal, timeout \\ :infinity) do
@@ -98,10 +144,6 @@ defmodule LndClient do
 
   def subscribe_channel_event(%{pid: pid}, name \\ @server) do
     GenServer.call(name, {:subscribe_channel_event, %{pid: pid}})
-  end
-
-  def subscribe_invoices(%{pid: pid}, name \\ @server) do
-    GenServer.call(name, {:subscribe_invoices, %{pid: pid}})
   end
 
   def get_node_info(%NodeInfoRequest{} = node_info_request, name \\ @server) do
@@ -285,10 +327,15 @@ defmodule LndClient do
     })
   end
 
-  defp init_state(conn_config) do
+  defp init_state(conn_config, subscribers \\ []) do
     %{
       subscriptions: %{},
-      conn_config: conn_config
+      conn_config: conn_config,
+      subscribers: subscribers
     }
+  end
+
+  defp append_if(list, condition, item) do
+    if condition, do: list ++ [item], else: list
   end
 end

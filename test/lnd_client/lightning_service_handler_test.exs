@@ -46,4 +46,32 @@ defmodule LndClient.LightningServiceHandlerTest do
 
     assert response.payment_request == "pr"
   end
+
+  test "subscribe_invoices/3 streams invoices updates", %{grpc_channel: grpc_channel} do
+    Lnrpc.Lightning.ServiceMock
+    |> GrpcMock.expect(:subscribe_invoices, fn request, _stream ->
+      assert request.add_index == 2
+
+      %Lnrpc.Invoice{payment_request: "pr"}
+    end)
+
+    request = Lnrpc.InvoiceSubscription.new(add_index: 2)
+
+    # This does not test that macaroon is even passed in and
+    # set in metadata; the tests pass if that is commented out
+    {:ok, response} = @handler.subscribe_invoices(request, grpc_channel, "fakemacaroon")
+
+    IO.inspect(response)
+
+    # TODO Test the stream of invoice/s. How?
+    # response
+    # |> Enum.each(fn
+    #   {:ok, invoice} ->
+    #     IO.puts("Got invoice baby:")
+    #     IO.inspect(invoice)
+
+    #   {:error, _details} ->
+    #     IO.puts("Error while decoding stream")
+    # end)
+  end
 end

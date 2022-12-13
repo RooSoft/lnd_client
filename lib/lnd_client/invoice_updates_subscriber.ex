@@ -15,17 +15,21 @@ defmodule LndClient.InvoiceUpdatesSubscriber do
       end
 
   Then, you can start this in your application by adding `MyApp.InvoiceUpdates`
-  to your Supervisor's children.
+  to your Supervisor's children. See `LndClient.child_specs` for an easy way to do this.
   """
 
   defmacro __using__(_opts) do
     quote do
       require Logger
-      use GenServer
-      @behaviour LndClient.InvoiceUpdatesSubscriber.Behaviour
+      @behaviour LndClient.InvoiceUpdatesSubscriber
 
-      def start_link(_opts \\ []) do
-        GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+      @server LndClient.InvoiceUpdatesSubscriber.Server
+
+      def start_link(opts \\ %{}) do
+        lnd_server_name = opts[:lnd_server_name] || LndClient.Server
+        state = %{lnd_server_name: lnd_server_name, caller: __MODULE__}
+
+        GenServer.start_link(@server, state, name: get_server_name())
       end
 
       def start(opts \\ %{}) do
@@ -36,38 +40,22 @@ defmodule LndClient.InvoiceUpdatesSubscriber do
       end
 
       def stop(reason \\ :normal, timeout \\ :infinity) do
-        GenServer.stop(__MODULE__, reason, timeout)
-      end
-
-      def init(_) do
-        LndClient.subscribe_invoices(%{pid: self()})
-
-        {:ok, nil}
-      end
-
-      def handle_info(%Lnrpc.Invoice{} = invoice, state) do
-        now = DateTime.utc_now() |> DateTime.to_string()
-
-        IO.puts("---#{now}---")
-        IO.inspect(invoice)
-
-        handle_subscription_update(invoice)
-
-        {:noreply, state}
-      end
-
-      def handle_info(event, state) do
-        IO.puts("--------- got an unknown event")
-        IO.inspect(event)
-
-        {:noreply, state}
+        GenServer.stop(get_server_name(), reason, timeout)
       end
 
       def handle_subscription_update(invoice) do
         Logger.info("Got an update for invoice with payment_request: #{invoice.payment_request}")
       end
 
-      defoverridable handle_subscription_update: 1
+      def get_add_index do
+        nil
+      end
+
+      defoverridable handle_subscription_update: 1, get_add_index: 0
+
+      defp get_server_name do
+        "#{inspect(__MODULE__)}.Server" |> String.to_atom()
+      end
     end
   end
 
