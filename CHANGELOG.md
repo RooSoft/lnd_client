@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `LndClient.InvoiceUpdatesSubscriber` behaviour module for easy subscription to invoices
 - `decode_payment_request` to decode a payment request
 - named LndClient GenServers to connect to multiple LNDs
 - the following methods accept the GenServer name, which defaults to `LndClient.Server` if not supplied:
