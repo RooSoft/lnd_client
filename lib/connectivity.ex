@@ -9,20 +9,20 @@ defmodule LndClient.Connectivity do
       cred: creds,
       adapter_opts: %{http2_opts: %{keepalive: :infinity}}
     )
-    |> manage_new_connection(conn_config.macaroon_path)
+    |> manage_new_grpc_channel(conn_config.macaroon_path)
   end
 
   def disconnect(channel) do
     GRPC.Stub.disconnect(channel)
   end
 
-  defp manage_new_connection({:ok, connection}, macaroon_path) do
+  defp manage_new_grpc_channel({:ok, grpc_channel}, macaroon_path) do
     macaroon = get_macaroon(macaroon_path)
 
-    {:ok, %{connection: connection, macaroon: macaroon}}
+    {:ok, %{grpc_channel: grpc_channel, macaroon: macaroon}}
   end
 
-  defp manage_new_connection({:error, error}, _) do
+  defp manage_new_grpc_channel({:error, error}, _) do
     {:error, error}
   end
 
