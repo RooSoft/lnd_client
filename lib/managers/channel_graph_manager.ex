@@ -24,7 +24,7 @@ defmodule LndClient.Managers.ChannelGraphManager do
 
     response =
       Lnrpc.Lightning.Stub.subscribe_channel_graph(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.GraphTopologySubscription.new(),
         metadata: %{macaroon: state.macaroon}
       )

@@ -24,7 +24,7 @@ defmodule LndClient.Managers.InvoiceEventManager do
 
     response =
       Lnrpc.Lightning.Stub.subscribe_invoices(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.InvoiceSubscription.new(),
         metadata: %{macaroon: state.macaroon}
       )
