@@ -60,7 +60,7 @@ defmodule LndClientTest do
     assert get_info_response.identity_pubkey == "abc"
   end
 
-  test "child_spec is defined make it cleaner starting from a Supervisor" do
+  test "child_spec/1 is defined make it cleaner starting from a Supervisor" do
     conn_config = %LndClient.ConnConfig{}
 
     expected_result = %{
@@ -70,6 +70,31 @@ defmodule LndClientTest do
     }
 
     assert LndClient.child_spec(%{conn_config: conn_config, name: :alice_lnd}) == expected_result
+  end
+
+  test "child_specs/1 returns Supervisor child specs for LndClient and all custom subscriber modules" do
+    conn_config = %LndClient.ConnConfig{}
+
+    child_specs =
+      LndClient.child_specs(%{
+        conn_config: conn_config,
+        name: :bob_lnd,
+        subscribers: [TestInvoiceSubscriber]
+      })
+
+    expected_child_specs = [
+      LndClient.child_spec(%{
+        conn_config: conn_config,
+        name: :bob_lnd,
+        subscribers: [TestInvoiceSubscriber]
+      }),
+      %{
+        id: TestInvoiceSubscriber,
+        start: {TestInvoiceSubscriber, :start_link, [%{lnd_server_name: :bob_lnd}]}
+      }
+    ]
+
+    assert child_specs == expected_child_specs
   end
 
   @tag :start_genserver
