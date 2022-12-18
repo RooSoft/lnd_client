@@ -1,40 +1,52 @@
 defmodule LndClient.LightningServiceHandler do
-  @callback get_info(GRPC.Channel.t(), String.t()) :: {:ok, Lnrpc.GetInfoResponse.t()}
+  alias Lnrpc.{
+    Invoice,
+    SendRequest,
+    InvoiceSubscription,
+    GetInfoRequest,
+    GetInfoResponse,
+    AddInvoiceResponse,
+    SendResponse
+  }
+
+  alias Lnrpc.Lightning.Stub
+
+  @callback get_info(GRPC.Channel.t(), String.t()) :: {:ok, GetInfoResponse.t()}
 
   def get_info(channel, macaroon) do
-    Lnrpc.Lightning.Stub.get_info(
+    Stub.get_info(
       channel,
-      Lnrpc.GetInfoRequest.new(),
+      GetInfoRequest.new(),
       metadata: %{macaroon: macaroon}
     )
   end
 
-  @callback add_invoice(Lnrpc.Invoice.t(), GRPC.Channel.t(), String.t()) ::
-              {:ok, Lnrpc.AddInvoiceResponse.t()}
+  @callback add_invoice(Invoice.t(), GRPC.Channel.t(), String.t()) ::
+              {:ok, AddInvoiceResponse.t()}
 
   def add_invoice(invoice, channel, macaroon) do
-    Lnrpc.Lightning.Stub.add_invoice(
+    Stub.add_invoice(
       channel,
       invoice,
       metadata: %{macaroon: macaroon}
     )
   end
 
-  @callback send_payment_sync(Lnrpc.SendRequest.t(), GRPC.Channel.t(), String.t()) ::
-              {:ok, Lnrpc.SendResponse.t()}
+  @callback send_payment_sync(SendRequest.t(), GRPC.Channel.t(), String.t()) ::
+              {:ok, SendResponse.t()}
 
   def send_payment_sync(send_request, channel, macaroon) do
-    Lnrpc.Lightning.Stub.send_payment_sync(
+    Stub.send_payment_sync(
       channel,
       send_request,
       metadata: %{macaroon: macaroon}
     )
   end
 
-  @callback subscribe_invoices(Lnrpc.InvoiceSubscription.t(), GRPC.Channel.t(), String.t()) ::
-              {:ok, {Lnrpc.Invoice.t(), true}}
-  def subscribe_invoices(request \\ Lnrpc.InvoiceSubscription.new(), channel, macaroon) do
-    Lnrpc.Lightning.Stub.subscribe_invoices(
+  @callback subscribe_invoices(InvoiceSubscription.t(), GRPC.Channel.t(), String.t()) ::
+              {:ok, {Invoice.t(), true}}
+  def subscribe_invoices(request \\ InvoiceSubscription.new(), channel, macaroon) do
+    Stub.subscribe_invoices(
       channel,
       request,
       metadata: %{macaroon: macaroon}
