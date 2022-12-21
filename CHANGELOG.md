@@ -10,3 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `decode_payment_request` to decode a payment request
+
+### Changed
+
+- `LndClient.start_link` and `LndClient.start` accept `LndClient.ConnConfig` struct
+- Remove `LndClient.connect` (`LndClient` connects automatically to LND when it starts up)
