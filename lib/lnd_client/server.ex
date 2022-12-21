@@ -35,7 +35,7 @@ defmodule LndClient.Server do
   def handle_call(:get_wallet_balance, _from, state) do
     result =
       Lnrpc.Lightning.Stub.wallet_balance(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.WalletBalanceRequest.new(),
         metadata: %{macaroon: state.macaroon}
       )
@@ -46,7 +46,7 @@ defmodule LndClient.Server do
   def handle_call(:get_fee_report, _from, state) do
     result =
       Lnrpc.Lightning.Stub.fee_report(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.FeeReportRequest.new(),
         metadata: %{macaroon: state.macaroon}
       )
@@ -57,7 +57,7 @@ defmodule LndClient.Server do
   def handle_call(:get_network_info, _from, state) do
     result =
       Lnrpc.Lightning.Stub.get_network_info(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.NetworkInfoRequest.new(),
         metadata: %{macaroon: state.macaroon}
       )
@@ -68,7 +68,7 @@ defmodule LndClient.Server do
   def handle_call(:describe_graph, _from, state) do
     result =
       Lnrpc.Lightning.Stub.describe_graph(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.ChannelGraphRequest.new(),
         metadata: %{macaroon: state.macaroon}
       )
@@ -81,7 +81,7 @@ defmodule LndClient.Server do
 
     result =
       Lnrpc.Lightning.Stub.open_channel(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.OpenChannelRequest.new(request_map),
         metadata: %{macaroon: state.macaroon}
       )
@@ -92,7 +92,7 @@ defmodule LndClient.Server do
   def handle_call({:add_invoice, %Invoice{} = invoice}, _from, state) do
     result =
       Lnrpc.Lightning.Stub.add_invoice(
-        state.connection,
+        state.grpc_channel,
         invoice,
         metadata: %{macaroon: state.macaroon}
       )
@@ -103,7 +103,7 @@ defmodule LndClient.Server do
   def handle_call({:send_payment_sync, %SendRequest{} = send_request}, _from, state) do
     result =
       Lnrpc.Lightning.Stub.send_payment_sync(
-        state.connection,
+        state.grpc_channel,
         send_request,
         metadata: %{macaroon: state.macaroon}
       )
@@ -116,7 +116,7 @@ defmodule LndClient.Server do
 
     result =
       Lnrpc.Lightning.Stub.list_invoices(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.ListInvoiceRequest.new(request_map),
         metadata: %{macaroon: state.macaroon}
       )
@@ -129,7 +129,7 @@ defmodule LndClient.Server do
 
     result =
       Lnrpc.Lightning.Stub.list_payments(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.ListPaymentsRequest.new(request_map),
         metadata: %{macaroon: state.macaroon}
       )
@@ -166,7 +166,7 @@ defmodule LndClient.Server do
 
     result =
       Lnrpc.Lightning.Stub.close_channel(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.CloseChannelRequest.new(params),
         metadata: %{macaroon: state.macaroon}
       )
@@ -177,7 +177,7 @@ defmodule LndClient.Server do
   def handle_call(:get_node_balance, _from, state) do
     result =
       Lnrpc.Lightning.Stub.channel_balance(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.ChannelBalanceRequest.new(),
         metadata: %{macaroon: state.macaroon}
       )
@@ -188,7 +188,7 @@ defmodule LndClient.Server do
   def handle_call(:get_info, _from, state) do
     result =
       Lnrpc.Lightning.Stub.get_info(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.GetInfoRequest.new(),
         metadata: %{macaroon: state.macaroon}
       )
@@ -199,7 +199,7 @@ defmodule LndClient.Server do
   def handle_call({:decode_payment_request, payment_request}, _from, state) do
     result =
       Lnrpc.Lightning.Stub.decode_pay_req(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.PayReqString.new(pay_req: payment_request),
         metadata: %{macaroon: state.macaroon}
       )
@@ -242,7 +242,7 @@ defmodule LndClient.Server do
       ) do
     result =
       Lnrpc.Lightning.Stub.get_node_info(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.NodeInfoRequest.new(pub_key: pubkey, include_channels: include_channels),
         metadata: %{macaroon: state.macaroon}
       )
@@ -253,7 +253,7 @@ defmodule LndClient.Server do
   def handle_call({:get_channels, %{active_only: active_only}}, _from, state) do
     result =
       Lnrpc.Lightning.Stub.list_channels(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.ListChannelsRequest.new(active_only: active_only),
         metadata: %{macaroon: state.macaroon}
       )
@@ -264,7 +264,7 @@ defmodule LndClient.Server do
   def handle_call({:get_closed_channels, %{}}, _from, state) do
     result =
       Lnrpc.Lightning.Stub.closed_channels(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.ClosedChannelsRequest.new(),
         metadata: %{macaroon: state.macaroon}
       )
@@ -275,7 +275,7 @@ defmodule LndClient.Server do
   def handle_call({:get_channel, %{id: id}}, _from, state) do
     result =
       Lnrpc.Lightning.Stub.get_chan_info(
-        state.connection,
+        state.grpc_channel,
         Lnrpc.ChanInfoRequest.new(chan_id: id),
         metadata: %{macaroon: state.macaroon}
       )
@@ -284,7 +284,7 @@ defmodule LndClient.Server do
   end
 
   def handle_call({:get_forwarding_history, params}, _from, state) do
-    {:reply, GetForwardingHistory.handle(params, state.connection, state.macaroon), state}
+    {:reply, GetForwardingHistory.handle(params, state.grpc_channel, state.macaroon), state}
   end
 
   def handle_call(
@@ -321,7 +321,7 @@ defmodule LndClient.Server do
 
     result =
       Lnrpc.Lightning.Stub.update_channel_policy(
-        state.connection,
+        state.grpc_channel,
         request,
         metadata: %{macaroon: state.macaroon}
       )
@@ -347,7 +347,7 @@ defmodule LndClient.Server do
     end
 
     # this delay proved necessary because the node was apparently
-    # not ready at that point to handle new connections
+    # not ready at that point to handle new grpc_channels
     :timer.sleep(2000)
 
     {:noreply,
@@ -424,26 +424,26 @@ defmodule LndClient.Server do
   end
 
   def terminate(_reason, nil) do
-    # no connection to close
+    # no grpc_channel to close
   end
 
-  def terminate(_reason, %{connection: nil}) do
-    # no connection to close
+  def terminate(_reason, %{grpc_channel: nil}) do
+    # no grpc_channel to close
   end
 
   # perform cleanup
-  def terminate(_reason, %{connection: connection}) do
-    Connectivity.disconnect(connection)
+  def terminate(_reason, %{grpc_channel: grpc_channel}) do
+    Connectivity.disconnect(grpc_channel)
   end
 
   defp connect_to_lnd(state) do
     conn_config = Map.get(state, :conn_config)
 
     case Connectivity.connect(conn_config) do
-      {:ok, %{connection: connection, macaroon: macaroon}} ->
+      {:ok, %{grpc_channel: grpc_channel, macaroon: macaroon}} ->
         new_state =
           state
-          |> Map.put(:connection, connection)
+          |> Map.put(:grpc_channel, grpc_channel)
           |> Map.put(:macaroon, macaroon)
 
         {:ok, new_state}

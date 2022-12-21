@@ -24,7 +24,7 @@ defmodule LndClient.Managers.HtlcEventManager do
 
     response =
       Routerrpc.Router.Stub.subscribe_htlc_events(
-        state.connection,
+        state.grpc_channel,
         Routerrpc.SubscribeHtlcEventsRequest.new(),
         metadata: %{macaroon: state.macaroon}
       )
