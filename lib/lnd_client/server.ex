@@ -15,7 +15,9 @@ defmodule LndClient.Server do
 
   alias Lnrpc.{
     Invoice,
-    SendRequest
+    SendRequest,
+    NodeInfoRequest,
+    NodeInfo
   }
 
   def init(state) do
@@ -235,15 +237,11 @@ defmodule LndClient.Server do
      |> record_node_event_subscription(subscription_type, pid)}
   end
 
-  def handle_call(
-        {:get_node_info, %{pubkey: pubkey, include_channels: include_channels}},
-        _from,
-        state
-      ) do
+  def handle_call({:get_node_info, %NodeInfoRequest{} = request}, _from, state) do
     result =
       Lnrpc.Lightning.Stub.get_node_info(
         state.grpc_channel,
-        Lnrpc.NodeInfoRequest.new(pub_key: pubkey, include_channels: include_channels),
+        request,
         metadata: %{macaroon: state.macaroon}
       )
 
