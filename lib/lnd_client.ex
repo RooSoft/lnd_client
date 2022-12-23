@@ -2,6 +2,7 @@ defmodule LndClient do
   require Logger
 
   alias LndClient.{
+    Config,
     ConnConfig
   }
 
@@ -22,21 +23,14 @@ defmodule LndClient do
   @long_timeout 500_000
   @server LndClient.Server
 
-  def start(%{conn_config: conn_config} = opts) do
-    name = opts[:name] || @server
-    subscribers = opts[:subscribers] || []
-
-    GenServer.start(@server, init_state(conn_config, subscribers), name: name)
+  def start(%Config{} = config) do
+    GenServer.start(@server, init_state(config), name: config.name)
   end
 
-  def child_spec(%{conn_config: conn_config, name: name} = opts) do
-    subscribers = opts[:subscribers] || []
-
+  def child_spec(%Config{name: name} = config) do
     %{
       id: name,
-      start:
-        {__MODULE__, :start_link,
-         [%{conn_config: conn_config, name: name, subscribers: subscribers}]}
+      start: {__MODULE__, :start_link, [config]}
     }
   end
 
@@ -44,33 +38,21 @@ defmodule LndClient do
   Convenience function to generate a list of child specs, including any custom subscriptions in your app. This allows you to easily let your Supervisor run all other GenServers directly.
 
       LndClient.child_specs(
-        conn_config: %LndClient.ConnConfig{
-          node_uri: System.get_env("ALICE_NODE"),
-          cert_path: System.get_env("ALICE_CERT"),
-          macaroon_path: System.get_env("ALICE_MACAROON")
-        },
-        name: :lnd_client,
-        subscribers: [MyApp.LNDInvoiceSubscriber]
+        %LndClient.Config{
+          conn_config: %LndClient.ConnConfig{
+            node_uri: System.get_env("ALICE_NODE"),
+            cert_path: System.get_env("ALICE_CERT"),
+            macaroon_path: System.get_env("ALICE_MACAROON")
+          },
+          name: :lnd_client,
+          invoice_subscriber: MyApp.LNDInvoiceSubscriber
+        }
       )
 
   This returns a list of child_specs that can be added to the list of children to start by your supervisor. It will contain at least one: `LndClient`'s child spec, and it will another per item in `subscribers`.
   """
-  def child_specs(%{conn_config: conn_config, name: name} = opts) do
-    subscribers = opts[:subscribers] || []
-
-    [child_spec(opts)] ++ module_child_specs(subscribers, name)
-  end
-
-  defp module_child_spec(module, name) do
-    %{
-      id: module,
-      start: {module, :start_link, [%{lnd_server_name: name}]}
-    }
-  end
-
-  defp module_child_specs(modules, name) do
-    modules
-    |> Enum.map(fn module -> module_child_spec(module, name) end)
+  def child_specs(%Config{conn_config: conn_config, name: name} = config) do
+    [child_spec(config)] ++ Config.subscriber_child_specs(config)
   end
 
   @doc """
@@ -80,10 +62,12 @@ defmodule LndClient do
 
   ## Examples
 
-      iex> {:ok, pid} = %LndClient.Config.new{
-        node_uri: "127.0.0.1:10001",
-        cert_path: "/path/to/tls.cert",
-        macaroon_path: "/path/to/readonly.macaroon"
+      iex> {:ok, pid} = %LndClient.Config{
+        conn_config: %LndClient.ConnConfig{
+          node_uri: "127.0.0.1:10001",
+          cert_path: "/path/to/tls.cert",
+          macaroon_path: "/path/to/readonly.macaroon"
+        }
       } |> LndClient.start_link()
 
   You may pass something like the following to a Supervisor:
@@ -91,19 +75,18 @@ defmodule LndClient do
   ```ex
   {
     LndClient,
-    conn_config: %LndClient.ConnConfig{
-      node_uri: System.get_env("NODE_URI"),
-      cert_path: System.get_env("CERT_PATH"),
-      macaroon_path: System.get_env("MACAROON_PATH")
-    },
+    %LndClient.Config{
+      conn_config: %LndClient.ConnConfig{
+        node_uri: System.get_env("NODE_URI"),
+        cert_path: System.get_env("CERT_PATH"),
+        macaroon_path: System.get_env("MACAROON_PATH")
+      }
+    }
   },
   ```
   """
-  def start_link(%{conn_config: conn_config} = opts) do
-    name = opts[:name] || @server
-    subscribers = opts[:subscribers] || []
-
-    GenServer.start_link(@server, init_state(conn_config, subscribers), name: name)
+  def start_link(%Config{name: name} = config) do
+    GenServer.start_link(@server, init_state(config), name: name)
   end
 
   def get_state(name \\ @server) do
@@ -327,11 +310,10 @@ defmodule LndClient do
     })
   end
 
-  defp init_state(conn_config, subscribers \\ []) do
+  defp init_state(%Config{} = config) do
     %{
       subscriptions: %{},
-      conn_config: conn_config,
-      subscribers: subscribers
+      config: config
     }
   end
 

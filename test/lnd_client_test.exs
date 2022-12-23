@@ -1,7 +1,7 @@
 defmodule LndClientTest do
   use ExUnit.Case
 
-  alias LndClient.ConnConfig
+  alias LndClient.{Config, ConnConfig}
   alias Lnrpc.{Invoice, SendRequest}
 
   import Mox
@@ -38,7 +38,7 @@ defmodule LndClientTest do
         macaroon_path: "macaroon_path"
       }
 
-      LndClient.start_link(%{conn_config: conn_config})
+      LndClient.start_link(%Config{conn_config: conn_config})
     end
 
     :ok
@@ -65,34 +65,27 @@ defmodule LndClientTest do
 
     expected_result = %{
       id: :alice_lnd,
-      start:
-        {LndClient, :start_link, [%{conn_config: conn_config, name: :alice_lnd, subscribers: []}]}
+      start: {
+        LndClient,
+        :start_link,
+        [%Config{conn_config: conn_config, name: :alice_lnd}]
+      }
     }
 
-    assert LndClient.child_spec(%{conn_config: conn_config, name: :alice_lnd}) == expected_result
+    assert LndClient.child_spec(%Config{conn_config: conn_config, name: :alice_lnd}) ==
+             expected_result
   end
 
   test "child_specs/1 returns Supervisor child specs for LndClient and all custom subscriber modules" do
-    conn_config = %LndClient.ConnConfig{}
+    config = %Config{
+      conn_config: %LndClient.ConnConfig{},
+      name: :bob_lnd,
+      invoice_subscriber: TestInvoiceSubscriber
+    }
 
-    child_specs =
-      LndClient.child_specs(%{
-        conn_config: conn_config,
-        name: :bob_lnd,
-        subscribers: [TestInvoiceSubscriber]
-      })
+    child_specs = LndClient.child_specs(config)
 
-    expected_child_specs = [
-      LndClient.child_spec(%{
-        conn_config: conn_config,
-        name: :bob_lnd,
-        subscribers: [TestInvoiceSubscriber]
-      }),
-      %{
-        id: TestInvoiceSubscriber,
-        start: {TestInvoiceSubscriber, :start_link, [%{lnd_server_name: :bob_lnd}]}
-      }
-    ]
+    expected_child_specs = [LndClient.child_spec(config)] ++ Config.subscriber_child_specs(config)
 
     assert child_specs == expected_child_specs
   end

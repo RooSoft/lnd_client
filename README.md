@@ -70,7 +70,7 @@ conn_config = %LndClient.ConnConfig{
 ### Start the server, get node info and then stop the server
 
 ```elixir
-LndClient.start_link(%{conn_config: conn_config})
+LndClient.start_link(%LndClient.Config{conn_config: conn_config})
 LndClient.get_info
 LndClient.stop
 ```
@@ -79,7 +79,7 @@ LndClient.stop
 You can start multiple GenServers by passing in the name:
 
 ```elixir
-LndClient.start_link(%{conn_config: conn_config, name: BobLndClient})
+LndClient.start_link(%LndClient.Config{conn_config: conn_config, name: BobLndClient})
 LndClient.get_info(BobLndClient)
 ```
 
@@ -90,7 +90,7 @@ Add this to the list of children:
 ```elixir
 children = [
   # ...
-] ++ LndClient.child_specs(%{conn_config: conn_config})
+] ++ LndClient.child_specs(%LndClient.Config{conn_config: conn_config})
 ```
 
 If you're going to make more than one connection to an LND, pass in the name.
@@ -98,7 +98,7 @@ If you're going to make more than one connection to an LND, pass in the name.
 ```elixir
 children = [
   # ...
-] ++ LndClient.child_specs(%{conn_config: alice_conn_config, name: AliceLndClient}) ++ LndClient.child_specs(%{conn_config: bob_conn_config, name: BobLndClient})
+] ++ LndClient.child_specs(%LndClient.Config{conn_config: alice_conn_config, name: AliceLndClient}) ++ LndClient.child_specs(%LndClient.Config{conn_config: bob_conn_config, name: BobLndClient})
 ```
 
 Then, somewhere else in your app:

@@ -3,7 +3,7 @@ defmodule LndClient.Server do
 
   require Logger
 
-  alias LndClient.Handlers
+  alias LndClient.{Config, Handlers}
 
   alias LndClient.Models.{
     OpenChannelRequest,
@@ -434,9 +434,7 @@ defmodule LndClient.Server do
     connectivity().disconnect(grpc_channel)
   end
 
-  defp connect_to_lnd(state) do
-    conn_config = Map.get(state, :conn_config)
-
+  defp connect_to_lnd(%{config: %Config{conn_config: conn_config}} = state) do
     case connectivity().connect(conn_config) do
       {:ok, %{grpc_channel: grpc_channel, macaroon: macaroon}} ->
         new_state =
