@@ -42,4 +42,38 @@ defmodule LndClient.ConfigTest do
 
     assert resulting_config == nil
   end
+
+  test "subscriber_child_spec(:single_invoice_subscriber) given a module returns a valid child_spec" do
+    config = %Config{single_invoice_subscriber: TestSingleInvoiceSubscriber, name: :alice}
+
+    expected_name = String.to_atom("LndClient.SingleInvoiceSubscription.DynamicSupervisor.alice")
+
+    expected_child_spec = %{
+      id: expected_name,
+      start: {
+        LndClient.SingleInvoiceSubscription.DynamicSupervisor,
+        :start_link,
+        [
+          %{
+            extra_arguments: %{lnd_server_name: :alice},
+            name: expected_name
+          }
+        ]
+      }
+    }
+
+    resulting_child_spec =
+      config
+      |> Config.subscriber_child_spec(:single_invoice_subscriber)
+
+    assert resulting_child_spec == expected_child_spec
+  end
+
+  test "subscriber_child_spec(:single_invoice_subscriber) not given a module returns nil" do
+    config = %Config{}
+
+    resulting_config = config |> Config.subscriber_child_spec(:single_invoice_subscriber)
+
+    assert resulting_config == nil
+  end
 end
