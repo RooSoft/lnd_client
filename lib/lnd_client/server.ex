@@ -3,10 +3,6 @@ defmodule LndClient.Server do
 
   require Logger
 
-  alias LndClient.{
-    Connectivity
-  }
-
   alias LndClient.Models.{
     OpenChannelRequest,
     ListInvoiceRequest,
@@ -19,11 +15,20 @@ defmodule LndClient.Server do
 
   alias Lnrpc.{
     Invoice,
-    SendRequest
+    SendRequest,
+    NodeInfoRequest,
+    NodeInfo
   }
 
   def init(state) do
-    connect_to_lnd(state)
+    GenServer.cast(self(), :connect_to_lnd)
+
+    {:ok, state}
+  end
+
+  def handle_cast(:connect_to_lnd, state) do
+    {:ok, new_state} = connect_to_lnd(state)
+    {:noreply, new_state}
   end
 
   def handle_call({:subscribe_uptime, %{pid: pid}}, _from, state) do
@@ -91,10 +96,10 @@ defmodule LndClient.Server do
 
   def handle_call({:add_invoice, %Invoice{} = invoice}, _from, state) do
     result =
-      Lnrpc.Lightning.Stub.add_invoice(
-        state.grpc_channel,
+      lightning_service_handler().add_invoice(
         invoice,
-        metadata: %{macaroon: state.macaroon}
+        state.grpc_channel,
+        state.macaroon
       )
 
     {:reply, result, state}
@@ -102,10 +107,10 @@ defmodule LndClient.Server do
 
   def handle_call({:send_payment_sync, %SendRequest{} = send_request}, _from, state) do
     result =
-      Lnrpc.Lightning.Stub.send_payment_sync(
-        state.grpc_channel,
+      lightning_service_handler().send_payment_sync(
         send_request,
-        metadata: %{macaroon: state.macaroon}
+        state.grpc_channel,
+        state.macaroon
       )
 
     {:reply, result, state}
@@ -186,14 +191,11 @@ defmodule LndClient.Server do
   end
 
   def handle_call(:get_info, _from, state) do
-    result =
-      Lnrpc.Lightning.Stub.get_info(
-        state.grpc_channel,
-        Lnrpc.GetInfoRequest.new(),
-        metadata: %{macaroon: state.macaroon}
-      )
-
-    {:reply, result, state}
+    {
+      :reply,
+      lightning_service_handler().get_info(state.grpc_channel, state.macaroon),
+      state
+    }
   end
 
   def handle_call({:decode_payment_request, payment_request}, _from, state) do
@@ -235,15 +237,11 @@ defmodule LndClient.Server do
      |> record_node_event_subscription(subscription_type, pid)}
   end
 
-  def handle_call(
-        {:get_node_info, %{pubkey: pubkey, include_channels: include_channels}},
-        _from,
-        state
-      ) do
+  def handle_call({:get_node_info, %NodeInfoRequest{} = request}, _from, state) do
     result =
       Lnrpc.Lightning.Stub.get_node_info(
         state.grpc_channel,
-        Lnrpc.NodeInfoRequest.new(pub_key: pubkey, include_channels: include_channels),
+        request,
         metadata: %{macaroon: state.macaroon}
       )
 
@@ -433,13 +431,13 @@ defmodule LndClient.Server do
 
   # perform cleanup
   def terminate(_reason, %{grpc_channel: grpc_channel}) do
-    Connectivity.disconnect(grpc_channel)
+    connectivity().disconnect(grpc_channel)
   end
 
   defp connect_to_lnd(state) do
     conn_config = Map.get(state, :conn_config)
 
-    case Connectivity.connect(conn_config) do
+    case connectivity().connect(conn_config) do
       {:ok, %{grpc_channel: grpc_channel, macaroon: macaroon}} ->
         new_state =
           state
@@ -451,5 +449,17 @@ defmodule LndClient.Server do
       {:error, error} ->
         {:error, "unable to connect to LND: #{error}"}
     end
+  end
+
+  defp lightning_service_handler do
+    Application.get_env(
+      :lnd_client,
+      :lightning_service_handler,
+      LndClient.LightningServiceHandler
+    )
+  end
+
+  defp connectivity do
+    Application.get_env(:lnd_client, :connectivity, LndClient.Connectivity)
   end
 end

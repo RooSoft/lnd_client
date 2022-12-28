@@ -8,7 +8,9 @@ defmodule LndClient.Tools.CommonPeers do
   end
 
   defp get_node_peer_ids(pub_key) do
-    {:ok, %Lnrpc.NodeInfo{channels: channels}} = LndClient.get_node_info(pub_key, true)
+    {:ok, %Lnrpc.NodeInfo{channels: channels}} =
+      %Lnrpc.NodeInfoRequest{pub_key: pub_key, include_channels: true}
+      |> LndClient.get_node_info()
 
     channels
     |> Enum.map(fn channel ->
