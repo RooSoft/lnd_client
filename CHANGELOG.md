@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `get_forwarding_history`
   - `decode_payment_request`
   - `update_channel_policy`
+- `.add_hold_invoice`
 
 ### Changed
 - `LndClient.child_spec` accepts a keyword list. see "How to use it with a Supervisor" in the [README](/README.md#how-to-use-it-with-a-supervisor).

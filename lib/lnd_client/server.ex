@@ -105,6 +105,17 @@ defmodule LndClient.Server do
     {:reply, result, state}
   end
 
+  def handle_call({:add_hold_invoice, request}, _from, state) do
+    result =
+      LndClient.InvoicesHandler.add_hold_invoice(
+        request,
+        state.grpc_channel,
+        state.macaroon
+      )
+
+    {:reply, result, state}
+  end
+
   def handle_call({:send_payment_sync, %SendRequest{} = send_request}, _from, state) do
     result =
       lightning_service_handler().send_payment_sync(
