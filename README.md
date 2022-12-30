@@ -174,9 +174,11 @@ cd proto
 
 curl -O https://raw.githubusercontent.com/lightningnetwork/lnd/master/lnrpc/lightning.proto
 curl -O https://raw.githubusercontent.com/lightningnetwork/lnd/master/lnrpc/routerrpc/router.proto
+curl -O https://raw.githubusercontent.com/lightningnetwork/lnd/master/lnrpc/invoicesrpc/invoices.proto
 
 protoc --elixir_out=plugins=grpc:../lib/gRPC lightning.proto
 protoc --elixir_out=plugins=grpc:../lib/gRPC router.proto
+protoc --elixir_out=plugins=grpc:../lib/gRPC invoices.proto
 
 cd ..
 ```
