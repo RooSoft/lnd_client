@@ -1,4 +1,4 @@
-defmodule LndClient.InvoiceUpdatesSubscriber.Impl do
+defmodule LndClient.SingleInvoiceUpdatesSubscriber.Impl do
   require Logger
 
   alias LndClient.Handlers

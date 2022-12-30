@@ -26,6 +26,7 @@ defmodule LndClient.SingleInvoiceUpdatesSubscriber do
 
       @behaviour LndClient.SingleInvoiceUpdatesSubscriber
       @server LndClient.SingleInvoiceUpdatesSubscriber.Server
+      @me __MODULE__
 
       def start_link(%State{} = state) do
         GenServer.start_link(@server, state)
@@ -33,6 +34,10 @@ defmodule LndClient.SingleInvoiceUpdatesSubscriber do
 
       def start(%State{} = state) do
         GenServer.start(@server, state)
+      end
+
+      def child_spec(%State{} = state) do
+        %{id: @me, start: {@me, :start_link, [state]}}
       end
 
       def handle_subscription_update(invoice) do

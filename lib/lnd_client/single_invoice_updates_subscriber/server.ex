@@ -5,19 +5,14 @@ defmodule LndClient.SingleInvoiceUpdatesSubscriber.Server do
 
   require Logger
 
-  def init(
-        %{
-          lnd_server_name: lnd_server_name,
-          subscribe_single_invoice_request: subscribe_single_invoice_request
-        } = state
-      ) do
+  def init(%State{} = state) do
     GenServer.cast(self(), :start_subscription)
 
     {:ok, state}
   end
 
   def handle_cast(:start_subscription, state) do
-    Logger.info("#{inspect(__MODULE__)}: monitoring for invoices...")
+    Logger.info("#{inspect(__MODULE__)}: monitoring #{inspect(state.request)}...")
 
     Impl.stream_invoices(state)
 

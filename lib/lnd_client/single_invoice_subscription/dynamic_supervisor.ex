@@ -20,17 +20,30 @@ defmodule LndClient.SingleInvoiceSubscription.DynamicSupervisor do
         subscriber_module,
         %SubscribeSingleInvoiceRequest{} = request
       ) do
+    state = %LndClient.SingleInvoiceUpdatesSubscriber.State{
+      lnd_server_name: lnd_server_name,
+      request: request,
+      callback_func: &subscriber_module.handle_subscription_update/1
+    }
+
     {:ok, _pid} =
       DynamicSupervisor.start_child(
         custom_server_name(lnd_server_name),
-        subscriber_module,
-        [
-          %LndClient.SingleInvoiceUpdatesSubscriber.State{
-            lnd_server_name: lnd_server_name,
-            request: request,
-            callback_func: &subscriber_module.handle_subscription_update/1
-          }
-        ]
+        {subscriber_module, state}
+        # %{
+        #   id: subscriber_module,
+        #   start: {
+        #     subscriber_module,
+        #     :start_link,
+        #     [
+        #       %LndClient.SingleInvoiceUpdatesSubscriber.State{
+        #         lnd_server_name: lnd_server_name,
+        #         request: request,
+        #         callback_func: &subscriber_module.handle_subscription_update/1
+        #       }
+        #     ]
+        #   }
+        # }
       )
   end
 
