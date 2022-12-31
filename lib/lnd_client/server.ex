@@ -3,6 +3,8 @@ defmodule LndClient.Server do
 
   require Logger
 
+  alias LndClient.Handlers
+
   alias LndClient.Models.{
     OpenChannelRequest,
     ListInvoiceRequest,
@@ -96,7 +98,7 @@ defmodule LndClient.Server do
 
   def handle_call({:add_invoice, %Invoice{} = invoice}, _from, state) do
     result =
-      lightning_service_handler().add_invoice(
+      Handlers.lightning_service_handler().add_invoice(
         invoice,
         state.grpc_channel,
         state.macaroon
@@ -107,7 +109,7 @@ defmodule LndClient.Server do
 
   def handle_call({:add_hold_invoice, request}, _from, state) do
     result =
-      LndClient.InvoicesHandler.add_hold_invoice(
+      Handlers.invoice_service_handler().add_hold_invoice(
         request,
         state.grpc_channel,
         state.macaroon
@@ -118,7 +120,7 @@ defmodule LndClient.Server do
 
   def handle_call({:send_payment_sync, %SendRequest{} = send_request}, _from, state) do
     result =
-      lightning_service_handler().send_payment_sync(
+      Handlers.lightning_service_handler().send_payment_sync(
         send_request,
         state.grpc_channel,
         state.macaroon
@@ -204,7 +206,7 @@ defmodule LndClient.Server do
   def handle_call(:get_info, _from, state) do
     {
       :reply,
-      lightning_service_handler().get_info(state.grpc_channel, state.macaroon),
+      Handlers.lightning_service_handler().get_info(state.grpc_channel, state.macaroon),
       state
     }
   end
@@ -460,14 +462,6 @@ defmodule LndClient.Server do
       {:error, error} ->
         {:error, "unable to connect to LND: #{error}"}
     end
-  end
-
-  defp lightning_service_handler do
-    Application.get_env(
-      :lnd_client,
-      :lightning_service_handler,
-      LndClient.LightningServiceHandler
-    )
   end
 
   defp connectivity do

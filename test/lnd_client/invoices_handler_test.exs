@@ -1,4 +1,4 @@
-defmodule LndClient.InvoicesHandlerTest do
+defmodule LndClient.InvoiceServiceHandlerTest do
   use ExUnit.Case
 
   test "add_hold_invoice adds a hold invoices" do
@@ -23,7 +23,7 @@ defmodule LndClient.InvoicesHandlerTest do
     # set in metadata; the tests pass if that is commented out
     {:ok, response} =
       %Invoicesrpc.AddHoldInvoiceRequest{value_msat: 150_000, hash: hash_bytes}
-      |> LndClient.InvoicesHandler.add_hold_invoice(grpc_channel, "fakemacaroon")
+      |> LndClient.InvoiceServiceHandler.add_hold_invoice(grpc_channel, "fakemacaroon")
 
     assert response.payment_request == "abcd"
   end

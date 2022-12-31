@@ -15,3 +15,11 @@ Application.put_env(
   :lightning_service_handler,
   LndClient.MockLightningServiceHandler
 )
+
+Mox.defmock(LndClient.MockInvoiceServiceHandler, for: LndClient.InvoiceServiceHandler)
+
+Application.put_env(
+  :lnd_client,
+  :invoice_service_handler,
+  LndClient.MockInvoiceServiceHandler
+)
