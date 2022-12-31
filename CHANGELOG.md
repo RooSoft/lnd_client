@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `decode_payment_request`
   - `update_channel_policy`
 - `.add_hold_invoice`
+- `.lookup_invoice_v2`
 
 ### Changed
 - `LndClient.child_spec` accepts a map. see "How to use it with a Supervisor" in the [README](/README.md#how-to-use-it-with-a-supervisor).

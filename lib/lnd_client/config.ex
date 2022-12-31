@@ -44,22 +44,8 @@ defmodule LndClient.Config do
         :single_invoice_subscriber
       ) do
     case invoice_subscriber do
-      nil ->
-        nil
-
-      _ ->
-        %{
-          id: custom_module_name(@single_invoice_dynamic_supervisor, name),
-          start: {
-            @single_invoice_dynamic_supervisor,
-            :start_link,
-            [%{extra_arguments: %{lnd_server_name: name}}]
-          }
-        }
+      nil -> nil
+      _ -> @single_invoice_dynamic_supervisor.child_spec(name)
     end
-  end
-
-  defp custom_module_name(module, lnd_client_name) do
-    "#{inspect(module)}.#{lnd_client_name}" |> String.to_atom()
   end
 end
