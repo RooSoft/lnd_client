@@ -110,4 +110,24 @@ defmodule LndClientTest do
 
     assert send_response.payment_hash == "ph"
   end
+
+  @tag :start_genserver
+  test "add_hold_invoice adds a hold invoice" do
+    LndClient.MockInvoiceServiceHandler
+    |> expect(
+      :add_hold_invoice,
+      fn request, _grpc_channel, macaroon ->
+        assert request.value == 1000
+        assert macaroon == "fakedmac"
+
+        {:ok, %Invoicesrpc.AddHoldInvoiceResp{payment_request: "pr"}}
+      end
+    )
+
+    {:ok, response} =
+      %Invoicesrpc.AddHoldInvoiceRequest{value: 1000}
+      |> LndClient.add_hold_invoice()
+
+    assert response.payment_request == "pr"
+  end
 end
