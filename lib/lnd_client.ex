@@ -17,6 +17,8 @@ defmodule LndClient do
     NodeInfoRequest
   }
 
+  alias Invoicesrpc.AddHoldInvoiceRequest
+
   @long_timeout 500_000
   @server LndClient.Server
 
@@ -141,6 +143,22 @@ defmodule LndClient do
   """
   def add_invoice(%Invoice{} = invoice, name \\ @server) do
     GenServer.call(name, {:add_invoice, invoice})
+  end
+
+  @doc """
+  Takes a Invoicesrpc.AddHoldInvoiceRequest struct and adds the invoice to LND
+
+  ## Examples
+
+  iex> hash_bytes = "87550a73354fa8f098632c34268c8d2012708a8f56bc7c08209460fb4a3add0e"
+                    |> String.upcase()
+                    |> Base.decode16!()
+  Invoicesrpc.AddHoldInvoiceRequest{value_msat: 150_000, hash: hash_bytes}
+  |> LndClient.add_hold_invoice()
+  {:ok, %Invoicesrpc.AddHoldInvoiceResp{}}
+  """
+  def add_hold_invoice(%AddHoldInvoiceRequest{} = request, name \\ @server) do
+    GenServer.call(name, {:add_hold_invoice, request})
   end
 
   @doc """
