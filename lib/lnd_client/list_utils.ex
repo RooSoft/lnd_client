@@ -1,6 +1,10 @@
 defmodule LndClient.ListUtils do
   def append_if(list, condition, item) do
-    if condition, do: list ++ [item], else: list
+    if condition, do: append(list, item), else: list
+  end
+
+  def append(list, item) do
+    list ++ [item]
   end
 
   def unique_append(list, item) do

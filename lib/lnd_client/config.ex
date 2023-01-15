@@ -20,6 +20,8 @@ defmodule LndClient.Config do
         config |> subscriber_child_spec(subscriber_key)
       end
     )
+    # TODO testme
+    |> ListUtils.append(single_invoice_subscription_registry_child_spec(config))
     |> Enum.reject(&is_nil/1)
   end
 
@@ -47,5 +49,26 @@ defmodule LndClient.Config do
       nil -> nil
       _ -> @single_invoice_dynamic_supervisor.child_spec(name)
     end
+  end
+
+  defp single_invoice_subscription_registry_child_spec(%Config{
+         name: name,
+         single_invoice_subscriber: single_invoice_subscriber
+       }) do
+    case single_invoice_subscriber do
+      nil ->
+        nil
+
+      _ ->
+        {
+          Registry,
+          keys: :unique, name: single_invoice_subscriber_registry_name(name)
+        }
+    end
+  end
+
+  def single_invoice_subscriber_registry_name(lnd_client_name) do
+    "LndClient.SingleInvoiceSubscriptionRegistry.#{lnd_client_name}"
+    |> String.to_atom()
   end
 end

@@ -30,40 +30,7 @@ defmodule LndClient.SingleInvoiceSubscription.DynamicSupervisor do
       DynamicSupervisor.start_child(
         custom_server_name(lnd_server_name),
         {subscriber_module, state}
-        # %{
-        #   id: subscriber_module,
-        #   start: {
-        #     subscriber_module,
-        #     :start_link,
-        #     [
-        #       %LndClient.SingleInvoiceUpdatesSubscriber.State{
-        #         lnd_server_name: lnd_server_name,
-        #         request: request,
-        #         callback_func: &subscriber_module.handle_subscription_update/1
-        #       }
-        #     ]
-        #   }
-        # }
       )
-  end
-
-  # TODO testme
-  def child_spec(lnd_server_name) do
-    dynamic_supervisor_name = custom_server_name(lnd_server_name)
-
-    %{
-      id: dynamic_supervisor_name,
-      start: {
-        @me,
-        :start_link,
-        [
-          %{
-            name: dynamic_supervisor_name,
-            extra_arguments: %{lnd_server_name: lnd_server_name}
-          }
-        ]
-      }
-    }
   end
 
   defp custom_server_name(lnd_server_name) do

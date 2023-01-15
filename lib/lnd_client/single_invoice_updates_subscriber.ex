@@ -29,7 +29,7 @@ defmodule LndClient.SingleInvoiceUpdatesSubscriber do
       @me __MODULE__
 
       def start_link(%State{} = state) do
-        GenServer.start_link(@server, state)
+        GenServer.start_link(@server, state, name: )
       end
 
       def start(%State{} = state) do
@@ -45,6 +45,15 @@ defmodule LndClient.SingleInvoiceUpdatesSubscriber do
       end
 
       defoverridable handle_subscription_update: 1
+
+      defp via_tuple(r_hash, lnd_client_name) do
+        {:via, Registry, {registry_name(lnd_client_name), r_hash}}
+      end
+
+      defp registry_name(lnd_client_name) do
+        lnd_client_name
+        |> LndClient.Config.single_invoice_subscriber_registry_name()
+      end
     end
   end
 
