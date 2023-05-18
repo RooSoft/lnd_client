@@ -316,8 +316,4 @@ defmodule LndClient do
       config: config
     }
   end
-
-  defp append_if(list, condition, item) do
-    if condition, do: list ++ [item], else: list
-  end
 end
