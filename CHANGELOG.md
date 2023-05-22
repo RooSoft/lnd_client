@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `LndClient.InvoiceUpdatesSubscriber` behaviour module for easy subscription to invoices
+- `LndClient.child_specs` to add to a supervisor to start `LndClient.Server` and all other genservers created with behavior modules such as `LndClient.InvoiceUpdatesSubscriber`
 - `decode_payment_request` to decode a payment request
 - named LndClient GenServers to connect to multiple LNDs
 - the following methods accept the GenServer name, which defaults to `LndClient.Server` if not supplied:
@@ -39,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.add_hold_invoice`
 
 ### Changed
-- `LndClient.child_spec` accepts a keyword list. see "How to use it with a Supervisor" in the [README](/README.md#how-to-use-it-with-a-supervisor).
+- `LndClient.child_spec` accepts a map. see "How to use it with a Supervisor" in the [README](/README.md#how-to-use-it-with-a-supervisor).
 - `LndClient.get_node_info` accepts `Lnrpc.NodeInfoRequest` as the first argument.
 - `LndClient.start_link` and `LndClient.start` accept `LndClient.ConnConfig` struct
 - Remove `LndClient.connect` (`LndClient` connects automatically to LND when it starts up)

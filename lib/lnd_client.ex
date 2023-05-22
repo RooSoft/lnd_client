@@ -2,6 +2,7 @@ defmodule LndClient do
   require Logger
 
   alias LndClient.{
+    Config,
     ConnConfig
   }
 
@@ -22,29 +23,51 @@ defmodule LndClient do
   @long_timeout 500_000
   @server LndClient.Server
 
-  def start(%ConnConfig{} = conn_config, name \\ @server) do
-    GenServer.start(@server, init_state(conn_config), name: name)
+  def start(%Config{} = config) do
+    GenServer.start(@server, init_state(config), name: config.name)
   end
 
-  def child_spec(opts) do
-    conn_config = opts[:conn_config]
-    name = opts[:name] || @server
-
+  def child_spec(%Config{name: name} = config) do
     %{
       id: name,
-      start: {__MODULE__, :start_link, [conn_config, name]}
+      start: {__MODULE__, :start_link, [config]}
     }
+  end
+
+  @doc """
+  Convenience function to generate a list of child specs, including any custom subscriptions in your app. This allows you to easily let your Supervisor run all other GenServers directly.
+
+      LndClient.child_specs(
+        %LndClient.Config{
+          conn_config: %LndClient.ConnConfig{
+            node_uri: System.get_env("ALICE_NODE"),
+            cert_path: System.get_env("ALICE_CERT"),
+            macaroon_path: System.get_env("ALICE_MACAROON")
+          },
+          name: :lnd_client,
+          invoice_subscriber: MyApp.LNDInvoiceSubscriber
+        }
+      )
+
+  This returns a list of child_specs that can be added to the list of children to start by your supervisor. It will contain at least one: `LndClient`'s child spec, and it will another per item in `subscribers`.
+  """
+  def child_specs(%Config{conn_config: conn_config, name: name} = config) do
+    [child_spec(config)] ++ Config.subscriber_child_specs(config)
   end
 
   @doc """
   Starts a process which connects to an LND instance.
 
+  Most of the time, unless you're customizing how you're booting up LndClient and its GenServers (if any), then you will not use this directly, but rather you'll be using `child_specs/1`
+
   ## Examples
 
-      iex> {:ok, pid} = %LndClient.Config.new{
-        node_uri: "127.0.0.1:10001",
-        cert_path: "/path/to/tls.cert",
-        macaroon_path: "/path/to/readonly.macaroon"
+      iex> {:ok, pid} = %LndClient.Config{
+        conn_config: %LndClient.ConnConfig{
+          node_uri: "127.0.0.1:10001",
+          cert_path: "/path/to/tls.cert",
+          macaroon_path: "/path/to/readonly.macaroon"
+        }
       } |> LndClient.start_link()
 
   You may pass something like the following to a Supervisor:
@@ -52,16 +75,22 @@ defmodule LndClient do
   ```ex
   {
     LndClient,
-    %LndClient.ConnConfig{
-      node_uri: System.get_env("NODE_URI"),
-      cert_path: System.get_env("CERT_PATH"),
-      macaroon_path: System.get_env("MACAROON_PATH")
-    },
+    %LndClient.Config{
+      conn_config: %LndClient.ConnConfig{
+        node_uri: System.get_env("NODE_URI"),
+        cert_path: System.get_env("CERT_PATH"),
+        macaroon_path: System.get_env("MACAROON_PATH")
+      }
+    }
   },
   ```
   """
-  def start_link(%ConnConfig{} = conn_config, name \\ @server) do
-    GenServer.start_link(@server, init_state(conn_config), name: name)
+  def start_link(%Config{name: name} = config) do
+    GenServer.start_link(@server, init_state(config), name: name)
+  end
+
+  def get_state(name \\ @server) do
+    GenServer.call(name, :get_state)
   end
 
   def stop(reason \\ :normal, timeout \\ :infinity) do
@@ -98,10 +127,6 @@ defmodule LndClient do
 
   def subscribe_channel_event(%{pid: pid}, name \\ @server) do
     GenServer.call(name, {:subscribe_channel_event, %{pid: pid}})
-  end
-
-  def subscribe_invoices(%{pid: pid}, name \\ @server) do
-    GenServer.call(name, {:subscribe_invoices, %{pid: pid}})
   end
 
   def get_node_info(%NodeInfoRequest{} = node_info_request, name \\ @server) do
@@ -285,10 +310,10 @@ defmodule LndClient do
     })
   end
 
-  defp init_state(conn_config) do
+  defp init_state(%Config{} = config) do
     %{
       subscriptions: %{},
-      conn_config: conn_config
+      config: config
     }
   end
 end

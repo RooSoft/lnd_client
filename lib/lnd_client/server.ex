@@ -3,7 +3,7 @@ defmodule LndClient.Server do
 
   require Logger
 
-  alias LndClient.Handlers
+  alias LndClient.{Config, Handlers}
 
   alias LndClient.Models.{
     OpenChannelRequest,
@@ -31,6 +31,10 @@ defmodule LndClient.Server do
   def handle_cast(:connect_to_lnd, state) do
     {:ok, new_state} = connect_to_lnd(state)
     {:noreply, new_state}
+  end
+
+  def handle_call(:get_state, _from, state) do
+    {:reply, state, state}
   end
 
   def handle_call({:subscribe_uptime, %{pid: pid}}, _from, state) do
@@ -243,13 +247,6 @@ defmodule LndClient.Server do
      |> record_node_event_subscription(subscription_type, pid)}
   end
 
-  def handle_call({:subscribe_invoices = subscription_type, %{pid: pid}}, _from, state) do
-    {:reply, nil,
-     state
-     |> subscribe_to_node_event(pid, subscription_type)
-     |> record_node_event_subscription(subscription_type, pid)}
-  end
-
   def handle_call({:get_node_info, %NodeInfoRequest{} = request}, _from, state) do
     result =
       Lnrpc.Lightning.Stub.get_node_info(
@@ -351,7 +348,7 @@ defmodule LndClient.Server do
   end
 
   def handle_info({:gun_up, _pid, _protocol}, state) do
-    Logger.warning("LND node is back online, reinitializing LndClient")
+    Logger.warning("#{inspect(__MODULE__)}: LND node is back online, reinitializing LndClient")
 
     if state |> Map.has_key?(:uptime_subscription) do
       send(state.uptime_subscription, :up)
@@ -424,16 +421,6 @@ defmodule LndClient.Server do
     state
   end
 
-  def subscribe_to_node_event(state, pid, :subscribe_invoices) do
-    state
-    |> LndClient.Managers.InvoiceEventManager.start_link()
-
-    pid
-    |> LndClient.Managers.InvoiceEventManager.monitor()
-
-    state
-  end
-
   def terminate(_reason, nil) do
     # no grpc_channel to close
   end
@@ -447,9 +434,7 @@ defmodule LndClient.Server do
     connectivity().disconnect(grpc_channel)
   end
 
-  defp connect_to_lnd(state) do
-    conn_config = Map.get(state, :conn_config)
-
+  defp connect_to_lnd(%{config: %Config{conn_config: conn_config}} = state) do
     case connectivity().connect(conn_config) do
       {:ok, %{grpc_channel: grpc_channel, macaroon: macaroon}} ->
         new_state =

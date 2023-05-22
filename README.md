@@ -70,7 +70,7 @@ conn_config = %LndClient.ConnConfig{
 ### Start the server, get node info and then stop the server
 
 ```elixir
-LndClient.start_link(conn_config)
+LndClient.start_link(%LndClient.Config{conn_config: conn_config})
 LndClient.get_info
 LndClient.stop
 ```
@@ -79,7 +79,7 @@ LndClient.stop
 You can start multiple GenServers by passing in the name:
 
 ```elixir
-LndClient.start_link(conn_config, BobLndClient)
+LndClient.start_link(%LndClient.Config{conn_config: conn_config, name: BobLndClient})
 LndClient.get_info(BobLndClient)
 ```
 
@@ -88,41 +88,17 @@ LndClient.get_info(BobLndClient)
 Add this to the list of children:
 
 ```elixir
-[
-  {
-    LndClient,
-    conn_config: %LndClient.ConnConfig{
-      node_uri: System.get_env("ALICE_NODE"),
-      cert_path: System.get_env("ALICE_CERT"),
-      macaroon_path: System.get_env("ALICE_MACAROON")
-    }
-  }
-]
+children = [
+  # ...
+] ++ LndClient.child_specs(%LndClient.Config{conn_config: conn_config})
 ```
 
-If you're going to make more than one connection to an LND, just pass in the name.
+If you're going to make more than one connection to an LND, pass in the name.
 
 ```elixir
-[
-  {
-    LndClient,
-    conn_config: %LndClient.ConnConfig{
-      node_uri: System.get_env("ALICE_NODE"),
-      cert_path: System.get_env("ALICE_CERT"),
-      macaroon_path: System.get_env("ALICE_MACAROON")
-    },
-    name: AliceLndClient
-  },
-  {
-    LndClient,
-    conn_config: %LndClient.ConnConfig{
-      node_uri: System.get_env("BOB_NODE"),
-      cert_path: System.get_env("BOB_CERT"),
-      macaroon_path: System.get_env("BOB_MACAROON")
-    },
-    name: BobLndClient
-  }
-]
+children = [
+  # ...
+] ++ LndClient.child_specs(%LndClient.Config{conn_config: alice_conn_config, name: AliceLndClient}) ++ LndClient.child_specs(%LndClient.Config{conn_config: bob_conn_config, name: BobLndClient})
 ```
 
 Then, somewhere else in your app:
