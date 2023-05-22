@@ -9,7 +9,7 @@ defmodule LndClient.InvoiceServiceHandlerTest do
     {:ok, grpc_channel} = GRPC.Stub.connect("localhost:50052")
 
     Invoicesrpc.Invoices.ServiceMock
-    |> GrpcMock.expect(:add_hold_invoice, fn req, stream ->
+    |> GrpcMock.expect(:add_hold_invoice, fn _req, stream ->
       Invoicesrpc.AddHoldInvoiceResp.new(payment_request: "abcd")
     end)
 
