@@ -18,8 +18,7 @@ defmodule LndClient.Server do
   alias Lnrpc.{
     Invoice,
     SendRequest,
-    NodeInfoRequest,
-    NodeInfo
+    NodeInfoRequest
   }
 
   def init(state) do

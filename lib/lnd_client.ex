@@ -2,8 +2,7 @@ defmodule LndClient do
   require Logger
 
   alias LndClient.{
-    Config,
-    ConnConfig
+    Config
   }
 
   alias LndClient.Models.{
