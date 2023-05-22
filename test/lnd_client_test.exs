@@ -3,6 +3,7 @@ defmodule LndClientTest do
 
   alias LndClient.{Config, ConnConfig}
   alias Lnrpc.{Invoice, SendRequest}
+  alias Invoicesrpc.LookupInvoiceMsg
 
   import Mox
 
@@ -148,5 +149,26 @@ defmodule LndClientTest do
       |> LndClient.add_hold_invoice()
 
     assert response.payment_request == "pr"
+  end
+
+  @tag :start_genserver
+  test "lookup_invoice_v2 returns invoice details" do
+    LndClient.MockInvoiceServiceHandler
+    |> expect(
+      :lookup_invoice_v2,
+      fn %LookupInvoiceMsg{invoice_ref: {key, val}} = request, _grpc_channel, macaroon ->
+        assert key == :payment_hash
+        assert val == "ph"
+        assert macaroon == "fakedmac"
+
+        {:ok, %Invoice{payment_request: "pr"}}
+      end
+    )
+
+    {:ok, invoice} =
+      %LookupInvoiceMsg{invoice_ref: {:payment_hash, "ph"}}
+      |> LndClient.lookup_invoice_v2()
+
+    assert invoice.payment_request == "pr"
   end
 end
