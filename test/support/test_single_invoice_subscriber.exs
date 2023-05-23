@@ -1,0 +1,2 @@
+defmodule TestSingleInvoiceSubscriber do
+end

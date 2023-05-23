@@ -17,7 +17,7 @@ defmodule LndClient do
     NodeInfoRequest
   }
 
-  alias Invoicesrpc.AddHoldInvoiceRequest
+  alias Invoicesrpc.{AddHoldInvoiceRequest, SubscribeSingleInvoiceRequest, LookupInvoiceMsg}
 
   @long_timeout 500_000
   @server LndClient.Server
@@ -307,6 +307,15 @@ defmodule LndClient do
         max_htlc_msat: max_htlc_msat
       }
     })
+  end
+
+  # TODO testme
+  def add_single_invoice_subscription(%SubscribeSingleInvoiceRequest{} = request, name \\ @server) do
+    GenServer.cast(name, {:subscribe_single_invoice, request})
+  end
+
+  def lookup_invoice_v2(%LookupInvoiceMsg{} = request, name \\ @server) do
+    GenServer.call(name, {:lookup_invoice_v2, request})
   end
 
   defp init_state(%Config{} = config) do

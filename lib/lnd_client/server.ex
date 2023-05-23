@@ -3,7 +3,7 @@ defmodule LndClient.Server do
 
   require Logger
 
-  alias LndClient.{Config, Handlers}
+  alias LndClient.{Config, Handlers, ListUtils}
 
   alias LndClient.Models.{
     OpenChannelRequest,
@@ -20,6 +20,10 @@ defmodule LndClient.Server do
     SendRequest,
     NodeInfoRequest
   }
+
+  alias Invoicesrpc.{SubscribeSingleInvoiceRequest, LookupInvoiceMsg}
+
+  @subscribe_single_invoice_key :subscribe_single_invoice_r_hash_list
 
   def init(state) do
     GenServer.cast(self(), :connect_to_lnd)
@@ -125,6 +129,17 @@ defmodule LndClient.Server do
     result =
       Handlers.lightning_service_handler().send_payment_sync(
         send_request,
+        state.grpc_channel,
+        state.macaroon
+      )
+
+    {:reply, result, state}
+  end
+
+  def handle_call({:lookup_invoice_v2, %LookupInvoiceMsg{} = request}, _from, state) do
+    result =
+      Handlers.invoice_service_handler().lookup_invoice_v2(
+        request,
         state.grpc_channel,
         state.macaroon
       )
@@ -336,6 +351,31 @@ defmodule LndClient.Server do
     {:reply, result, state}
   end
 
+  def handle_cast(
+        {:subscribe_single_invoice, %SubscribeSingleInvoiceRequest{} = request},
+        %{
+          config: %Config{
+            name: name,
+            single_invoice_subscriber: single_invoice_subscriber
+          }
+        } = state
+      ) do
+    if subscribed_to_invoice?(state, request) do
+      IO.puts("Already subscribed to invoice #{request.r_hash}")
+    else
+      # subscribe only if we aren't already
+      LndClient.SingleInvoiceSubscriber.DynamicSupervisor.add_subscriber(
+        name,
+        single_invoice_subscriber,
+        request
+      )
+
+      state = state |> put_subscribe_single_invoice_request(request)
+    end
+
+    {:noreply, state}
+  end
+
   def handle_info({:gun_down, _pid, _protocol, _state, _}, state) do
     Logger.warning("LND node is down")
 
@@ -450,5 +490,16 @@ defmodule LndClient.Server do
 
   defp connectivity do
     Application.get_env(:lnd_client, :connectivity, LndClient.Connectivity)
+  end
+
+  defp subscribed_to_invoice?(state, request) do
+    (state[@subscribe_single_invoice_key] || [])
+    |> Enum.member?(request.r_hash)
+  end
+
+  defp put_subscribe_single_invoice_request(state, request) do
+    (state[@subscribe_single_invoice_key] || [])
+    |> ListUtils.unique_append(request.r_hash)
+    |> IO.inspect()
   end
 end
